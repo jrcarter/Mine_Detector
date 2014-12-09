@@ -53,7 +53,6 @@ package body User_IF is
       Mines_Left                : Gnoga.Gui.Element.Common.Span_Type;
       Button                    : Button_Set;
       Restart_Button            : Gnoga.Gui.Element.Common.Button_Type;
-      Restarting                : Boolean := False;
       Level_Form                : Gnoga.Gui.Element.Form.Form_Type;
       Level                     : Gnoga.Gui.Element.Form.Selection_Type;
       Mark_Form                 : Gnoga.Gui.Element.Form.Form_Type;
@@ -173,7 +172,6 @@ package body User_IF is
    procedure Reset_Screen (Data : in Gnoga.Types.Pointer_To_Connection_Data_Class) is
       App_Data : App_Ptr := App_Ptr (Data);
    begin -- Reset_Screen
-      App_Data.Restarting := True; -- Turn off Button_Press & Right_Click
       App_Data.Mines_Left.Text (Value => "0");
       App_Data.Game_Over.Text  (Value => "");
 
@@ -182,8 +180,6 @@ package body User_IF is
             Display_Blank (Data => Data, Cell => (Row => Row, Column => Column) );
          end loop Button_Column;
       end loop Button_Row;
-
-      App_Data.Restarting := False;
    end Reset_Screen;
 
    function Auto_Marking (Data : Gnoga.Types.Pointer_To_Connection_Data_Class) return Boolean is
@@ -445,21 +441,17 @@ package body User_IF is
       begin -- Respond
          case Action is
          when Button_Press =>
-            if not App_Data.Restarting then
                if Field.Operations.Game_State (App_Data.Field) /= Field.Operations.In_Progress then
                   Show_Game_Over (App_Data => App_Data);
                else
                   Field.Operations.Step (Field => App_Data.Field, Cell => Cell);
                end if;
-            end if;
          when Right_Click =>
-            if not App_Data.Restarting then
                if Field.Operations.Game_State (App_Data.Field) /= Field.Operations.In_Progress then
                   Show_Game_Over (App_Data => App_Data);
                else
                   Field.Operations.Mark (Field => App_Data.Field, Cell => Cell);
                end if;
-            end if;
          when Restart =>
             Field.Operations.Set_Mine_Count
                (Field => App_Data.Field, New_Mine_Count => Levels (App_Data.Level.Selected_Index).Mines);
