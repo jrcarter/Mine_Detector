@@ -1,5 +1,5 @@
 -- Mine Detector Game
--- Copyright (C) 2015 by PragmAda Software Engineering.  All rights reserved.
+-- Copyright (C) 2016 by PragmAda Software Engineering.  All rights reserved.
 -- **************************************************************************
 --
 -- V7.4 2016 Feb 15          Cleaned up unreferenced packages and variables that are not modified
