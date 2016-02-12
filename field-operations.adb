@@ -2,9 +2,9 @@
 -- Copyright (C) 2014 by PragmAda Software Engineering.  All rights reserved.
 -- **************************************************************************
 --
+-- v7.1 2016 Feb 15          Cleaned up unreferenced packages and variables that are not modified
 -- V7.0 2014 Dec 01          First Gnoga version
 --
-with Ada.Finalization;
 with Ada.Numerics.Discrete_Random;
 
 with User_IF;
@@ -186,7 +186,7 @@ package body Field.Operations is
    end Auto_Step;
 
    procedure Mark (Field : in out Field_Info; Cell : in Cell_Location) is
-      Old_State : State_Id := Field.Mine_Field (Cell.Row, Cell.Column).State;
+      Old_State : constant State_Id := Field.Mine_Field (Cell.Row, Cell.Column).State;
    begin -- Mark
       if Field.Dead then
          return;

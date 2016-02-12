@@ -2,6 +2,7 @@
 -- Copyright (C) 2015 by PragmAda Software Engineering.  All rights reserved.
 -- **************************************************************************
 --
+-- V7.4 2016 Feb 15          Cleaned up unreferenced packages and variables that are not modified
 -- V7.3 2015 Jun 15          Changed from Docker to Grid and added touch-screen support
 -- V7.2 2015 Jan 01          Improved "termination" screen
 -- V7.1 2014 Dec 10          Protected field-updating operations
@@ -9,9 +10,6 @@
 --
 
 with Ada.Characters.Latin_1;
-with Ada.Strings.Unbounded;
-
-with System;
 
 with Field.Operations;
 pragma Elaborate (Field.Operations);
@@ -20,14 +18,11 @@ with Gnoga.Application.Multi_Connect;
 with Gnoga.Gui.Base;
 with Gnoga.Gui.Element.Common;
 with Gnoga.Gui.Element.Form;
-with Gnoga.Gui.Element.Table;
 with Gnoga.Gui.View.Grid;
 with Gnoga.Gui.Window;
-with Gnoga.Types;
 
 use Ada;
 use Ada.Characters;
-use Ada.Strings.Unbounded;
 
 package body User_IF is
    Gray : constant Gnoga.Types.RGBA_Type := (Red => 224, Green => 224, Blue => 224, Alpha => 1.0);
@@ -134,7 +129,7 @@ package body User_IF is
    pragma Inline (Display);
 
    procedure Display_Blank (Data : in Gnoga.Types.Pointer_To_Connection_Data_Class; Cell : in Field.Cell_Location) is
-      App_Data : App_Ptr := App_Ptr (Data);
+      App_Data : constant App_Ptr := App_Ptr (Data);
    begin -- Display_Blank
       Display (App_Data => App_Data, Cell => Cell, Text => " ", Active => False);
    end Display_Blank;
@@ -146,7 +141,7 @@ package body User_IF is
    is
       Zero_Pos : constant := Character'Pos ('0');
 
-      App_Data : App_Ptr := App_Ptr (Data);
+      App_Data : constant App_Ptr := App_Ptr (Data);
    begin -- Display_Count
       Display (App_Data => App_Data,
                Cell     => Cell,
@@ -155,13 +150,13 @@ package body User_IF is
    end Display_Count;
 
    procedure Display_Mark (Data : in Gnoga.Types.Pointer_To_Connection_Data_Class; Cell : in Field.Cell_Location) is
-      App_Data : App_Ptr := App_Ptr (Data);
+      App_Data : constant App_Ptr := App_Ptr (Data);
    begin -- Display_Mark
       Display (App_Data => App_Data, Cell => Cell, Text => "M", Active => False);
    end Display_Mark;
 
    procedure Display_Mine (Data : in Gnoga.Types.Pointer_To_Connection_Data_Class; Cell : in Field.Cell_Location) is
-      App_Data : App_Ptr := App_Ptr (Data);
+      App_Data : constant App_Ptr := App_Ptr (Data);
    begin -- Display_Mine
       Display (App_Data => App_Data, Cell => Cell, Text => "X", Active => True);
    end Display_Mine;
@@ -169,13 +164,13 @@ package body User_IF is
    procedure Display_To_Go (Data : in Gnoga.Types.Pointer_To_Connection_Data_Class; To_Go : in Integer) is
       Image : constant String := Integer'Image (To_Go);
 
-      App_Data : App_Ptr := App_Ptr (Data);
+      App_Data : constant App_Ptr := App_Ptr (Data);
    begin -- Display_To_Go
       App_Data.Mines_Left.Text (Value => Image);
    end Display_To_Go;
 
    procedure Reset_Screen (Data : in Gnoga.Types.Pointer_To_Connection_Data_Class) is
-      App_Data : App_Ptr := App_Ptr (Data);
+      App_Data : constant App_Ptr := App_Ptr (Data);
    begin -- Reset_Screen
       App_Data.Mines_Left.Text (Value => "0");
       App_Data.Game_Over.Text  (Value => "");
@@ -188,31 +183,31 @@ package body User_IF is
    end Reset_Screen;
 
    function Auto_Marking (Data : Gnoga.Types.Pointer_To_Connection_Data_Class) return Boolean is
-      App_Data : App_Ptr := App_Ptr (Data);
+      App_Data : constant App_Ptr := App_Ptr (Data);
    begin -- Auto_Marking
       return Boolean (App_Data.Auto_Marking_Desired);
    end Auto_Marking;
 
    function Extended_Stepping (Data : in Gnoga.Types.Pointer_To_Connection_Data_Class) return Boolean is
-      App_Data : App_Ptr := App_Ptr (Data);
+      App_Data : constant App_Ptr := App_Ptr (Data);
    begin -- Extended_Stepping
       return Boolean (App_Data.Extended_Stepping_Desired);
    end Extended_Stepping;
 
    procedure When_Close (Object : in out Gnoga.Gui.Base.Base_Type'Class) is
-      App_Data : App_Ptr := App_Ptr (Object.Connection_Data);
+      App_Data : constant App_Ptr := App_Ptr (Object.Connection_Data);
    begin -- When_Close
       App_Data.Sequentializer.Respond (Action => Quit, App_Data => App_Data);
    end When_Close;
 
    procedure Mark_Toggle (Object : in out Gnoga.Gui.Base.Base_Type'Class) is
-      App_Data : App_Ptr := App_Ptr (Object.Connection_Data);
+      App_Data : constant App_Ptr := App_Ptr (Object.Connection_Data);
    begin -- Mark_Toggle
       App_Data.Auto_Marking_Desired := Atomic_Boolean (App_Data.Mark_Check.Checked);
    end Mark_Toggle;
 
    procedure Step_Toggle (Object : in out Gnoga.Gui.Base.Base_Type'Class) is
-      App_Data : App_Ptr := App_Ptr (Object.Connection_Data);
+      App_Data : constant App_Ptr := App_Ptr (Object.Connection_Data);
    begin -- Step_Toggle
       App_Data.Extended_Stepping_Desired := Atomic_Boolean (App_Data.Step_Check.Checked);
    end Step_Toggle;
@@ -223,7 +218,7 @@ package body User_IF is
       Row    : constant Field.Valid_Row    := Field.Valid_Row'Value    (Name (Name'First    .. Name'First + 1) );
       Column : constant Field.Valid_Column := Field.Valid_Column'Value (Name (Name'Last - 1 .. Name'Last) );
 
-      App_Data : App_Ptr := App_Ptr (Object.Connection_Data);
+      App_Data : constant App_Ptr := App_Ptr (Object.Connection_Data);
    begin -- Button_Press
       App_Data.Sequentializer.Respond (Action => Button_Press, App_Data => App_Data, Cell => (Row => Row, Column => Column) );
    end Button_Press;
@@ -234,19 +229,19 @@ package body User_IF is
       Row    : constant Field.Valid_Row    := Field.Valid_Row'Value    (Name (Name'First    .. Name'First + 1) );
       Column : constant Field.Valid_Column := Field.Valid_Column'Value (Name (Name'Last - 1 .. Name'Last) );
 
-      App_Data : App_Ptr := App_Ptr (Object.Connection_Data);
+      App_Data : constant App_Ptr := App_Ptr (Object.Connection_Data);
    begin -- Right_Click
       App_Data.Sequentializer.Respond (Action => Right_Click, App_Data => App_Data, Cell => (Row => Row, Column => Column) );
    end Right_Click;
 
    procedure When_Restart_Button (Object : in out Gnoga.Gui.Base.Base_Type'Class) is
-      App_Data : App_Ptr := App_Ptr (Object.Connection_Data);
+      App_Data : constant App_Ptr := App_Ptr (Object.Connection_Data);
    begin -- When_Restart_Button
       App_Data.Sequentializer.Respond (Action => Restart, App_Data => App_Data);
    end When_Restart_Button;
 
    procedure Rules_Pressed (Object : in out Gnoga.Gui.Base.Base_Type'Class) is
-      App_Data : App_Ptr := App_Ptr (Object.Connection_Data);
+      App_Data : constant App_Ptr := App_Ptr (Object.Connection_Data);
 
       Rules : constant String :=
          "The object of the game is to mark all cells containing " &
@@ -324,7 +319,7 @@ package body User_IF is
    end Rules_Pressed;
 
    procedure About_Pressed (Object : in out Gnoga.Gui.Base.Base_Type'Class) is
-      App_Data : App_Ptr := App_Ptr (Object.Connection_Data);
+      App_Data : constant App_Ptr := App_Ptr (Object.Connection_Data);
    begin -- About_Pressed
       App_Data.Window.Alert (Message => "Mine Detector" & Latin_1.LF &
                                		"Copyright (C) 2015 by" & Latin_1.LF &
@@ -368,7 +363,7 @@ package body User_IF is
    procedure On_Connect (Main_Window : in out Gnoga.Gui.Window.Window_Type'Class;
                          Connection  : Access Gnoga.Application.Multi_Connect.Connection_Holder_Type)
    is
-      App_Data : App_Ptr := new App_Info;
+      App_Data : constant App_Ptr := new App_Info;
    begin -- On_Connect
       App_Data.Window := Main_Window'Unchecked_Access;
       Main_Window.Connection_Data (Data => App_Data);
