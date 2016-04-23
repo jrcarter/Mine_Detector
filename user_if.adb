@@ -20,6 +20,7 @@ with Gnoga.Gui.Element.Common;
 with Gnoga.Gui.Element.Form;
 with Gnoga.Gui.View.Grid;
 with Gnoga.Gui.Window;
+with Gnoga.Types.Colors;
 
 use Ada;
 use Ada.Characters;
@@ -370,8 +371,10 @@ package body User_IF is
       Field.Operations.Set_Mine_Count (Field => App_Data.Field, New_Mine_Count => Levels (Default_Level).Mines);
       Main_Window.Buffer_Connection;
       App_Data.Big_View.Create (Parent => Main_Window, Layout => Gnoga.Gui.View.Grid.Horizontal_Split, Set_Sizes => False);
+      App_Data.Big_View.Background_Color (Enum => Gnoga.Types.Colors.Light_Blue);
       App_Data.Left_View.Create (Parent => App_Data.Big_View.Panel (1, 1).all);
       App_Data.Left_View.Hidden;
+      App_Data.Left_View.Background_Color (Enum => Gnoga.Types.Colors.Light_Blue);
 
       Button_Row    : for Row in App_Data.Button'Range(1) loop
          Button_Column : for Column in App_Data.Button'Range (2) loop
@@ -393,13 +396,15 @@ package body User_IF is
       end loop Button_Row;
 
       App_Data.Left_View.Hidden (Value => False);
-      
+
       App_Data.Right_View.Create (Parent => App_Data.Big_View.Panel (1, 2).all);
+      App_Data.Right_View.Background_Color (Enum => Gnoga.Types.Colors.Light_Blue);
       App_Data.Mines_Left.Create (Parent => App_Data.Right_View, Content => "0");
       App_Data.Mines_Left.Width (Value => 100);
       App_Data.Mines_Left.Text_Alignment (Value => Gnoga.Gui.Element.Center);
       App_Data.Mines_Left.Display (Value => "block");
       App_Data.Restart_Button.Create (Parent => App_Data.Right_View, Content => "New Game");
+      App_Data.Restart_Button.Background_Color (Enum => Gnoga.Types.Colors.Light_Green);
       App_Data.Restart_Button.Display (Value => "block");
       App_Data.Restart_Button.On_Click_Handler (Handler => When_Restart_Button'Access);
       App_Data.Level_Form.Create (Parent => App_Data.Right_View);
@@ -423,12 +428,15 @@ package body User_IF is
       App_Data.Step_Label.Create
          (Form => App_Data.Step_Form, Label_For => App_Data.Step_Check, Content => "Auto Step after Mark", Auto_Place => False);
       App_Data.Rules.Create (Parent => App_Data.Right_View, Content => "Rules");
+      App_Data.Rules.Background_Color (Enum => Gnoga.Types.Colors.Pale_Violet_Red);
       App_Data.Rules.Display (Value => "block");
       App_Data.Rules.On_Click_Handler (Handler => Rules_Pressed'Access);
       App_Data.About.Create (Parent => App_Data.Right_View, Content => "About");
+      App_Data.About.Background_Color (Enum => Gnoga.Types.Colors.Yellow);
       App_Data.About.Display (Value => "block");
       App_Data.About.On_Click_Handler (Handler => About_Pressed'Access);
       App_Data.Quit.Create (Parent => App_Data.Right_View, Content => "Quit");
+      App_Data.Quit.Background_Color (Enum => Gnoga.Types.Colors.Pink);
       App_Data.Quit.Display (Value => "block");
       App_Data.Quit.On_Click_Handler (Handler => When_Close'Access);
       App_Data.Game_Over.Create (Parent => App_Data.Right_View, Content => You_Won_Message);

@@ -12,6 +12,6 @@ project Mine_Detector is
    end Compiler;
 
    package Binder is
-      for Default_Switches ("ada") use ("-E", "-static", "/lib/x86_64-linux-gnu/libc-2.19.so");
+      for Default_Switches ("ada") use ("-E", "-static");
    end Binder;
 end Mine_Detector;
