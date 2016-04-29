@@ -2,6 +2,7 @@
 -- Copyright (C) 2016 by PragmAda Software Engineering.  All rights reserved.
 -- **************************************************************************
 --
+-- v7.5 2016 May 01          Used some colors; better name Stepped in Display
 -- V7.4 2016 Feb 15          Cleaned up unreferenced packages and variables that are not modified
 -- V7.3 2015 Jun 15          Changed from Docker to Grid and added touch-screen support
 -- V7.2 2015 Jan 01          Improved "termination" screen
@@ -165,7 +166,7 @@ package body User_IF is
    procedure Display_Mine (Data : in Gnoga.Types.Pointer_To_Connection_Data_Class; Cell : in Field.Cell_Location) is
       App_Data : constant App_Ptr := App_Ptr (Data);
    begin -- Display_Mine
-      Display (App_Data => App_Data, Cell => Cell, Text => "X", Stepped => True);
+      Display (App_Data => App_Data, Cell => Cell, Text => Exploded, Stepped => True);
    end Display_Mine;
 
    procedure Display_To_Go (Data : in Gnoga.Types.Pointer_To_Connection_Data_Class; To_Go : in Integer) is
