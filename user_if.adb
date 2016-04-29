@@ -73,6 +73,7 @@ package body User_IF is
 
    You_Won_Message  : constant String := "You Won";
    You_Lost_Message : constant String := "BOOM!";
+   Exploded         : constant String := "X";
 
    type Level_Info is record
       Name  : String (1 .. 3);
@@ -109,18 +110,23 @@ package body User_IF is
 
    Button_Size : constant := 25;
 
-   procedure Display (App_Data : in App_Ptr; Cell : in Field.Cell_Location; Text : in Cell_String; Active : in Boolean) is
+   procedure Display (App_Data : in App_Ptr; Cell : in Field.Cell_Location; Text : in Cell_String; Stepped : in Boolean) is
       -- null;
    begin -- Display
       App_Data.Button (Cell.Row, Cell.Column).Text (Value => Text);
 
-      if Active then
-         App_Data.Button (Cell.Row, Cell.Column).Background_Color (RGBA => Gray);
+      if not Stepped then
+         App_Data.Button (Cell.Row, Cell.Column).Background_Color (Enum => Gnoga.Types.Colors.Light_Green);
+         App_Data.Button (Cell.Row, Cell.Column).Shadow_None;
+      else
+         if Text = Exploded then
+            App_Data.Button (Cell.Row, Cell.Column).Background_Color (Enum => Gnoga.Types.Colors.Red);
+         else
+            App_Data.Button (Cell.Row, Cell.Column).Background_Color (RGBA => Gray);
+         end if;
+         
          App_Data.Button (Cell.Row, Cell.Column).Shadow
             (Horizontal_Position => "1px", Vertical_Position => "1px", Inset_Shadow => True);
-      else
-         App_Data.Button (Cell.Row, Cell.Column).Background_Color (Value => "white");
-         App_Data.Button (Cell.Row, Cell.Column).Shadow_None;
       end if;
 
       if Field.Operations.Game_State (App_Data.Field) /= Field.Operations.In_Progress then
@@ -132,7 +138,7 @@ package body User_IF is
    procedure Display_Blank (Data : in Gnoga.Types.Pointer_To_Connection_Data_Class; Cell : in Field.Cell_Location) is
       App_Data : constant App_Ptr := App_Ptr (Data);
    begin -- Display_Blank
-      Display (App_Data => App_Data, Cell => Cell, Text => " ", Active => False);
+      Display (App_Data => App_Data, Cell => Cell, Text => " ", Stepped => False);
    end Display_Blank;
 
    procedure Display_Count (Data     : in Gnoga.Types.Pointer_To_Connection_Data_Class;
@@ -147,19 +153,19 @@ package body User_IF is
       Display (App_Data => App_Data,
                Cell     => Cell,
                Text     => Character'Val (Zero_Pos + Count) & "",
-               Active   => Stepped);
+               Stepped  => Stepped);
    end Display_Count;
 
    procedure Display_Mark (Data : in Gnoga.Types.Pointer_To_Connection_Data_Class; Cell : in Field.Cell_Location) is
       App_Data : constant App_Ptr := App_Ptr (Data);
    begin -- Display_Mark
-      Display (App_Data => App_Data, Cell => Cell, Text => "M", Active => False);
+      Display (App_Data => App_Data, Cell => Cell, Text => "M", Stepped => False);
    end Display_Mark;
 
    procedure Display_Mine (Data : in Gnoga.Types.Pointer_To_Connection_Data_Class; Cell : in Field.Cell_Location) is
       App_Data : constant App_Ptr := App_Ptr (Data);
    begin -- Display_Mine
-      Display (App_Data => App_Data, Cell => Cell, Text => "X", Active => True);
+      Display (App_Data => App_Data, Cell => Cell, Text => "X", Stepped => True);
    end Display_Mine;
 
    procedure Display_To_Go (Data : in Gnoga.Types.Pointer_To_Connection_Data_Class; To_Go : in Integer) is
@@ -359,6 +365,8 @@ package body User_IF is
       Add_Options : for I in Levels'range loop
          App_Data.Level.Add_Option (Value => Levels (I).Name, Text => Levels (I).Name);
       end loop Add_Options;
+      
+      App_Data.Level.Selected (Index => Default_Level);
    end Create_Level_Option_Menu;
 
    procedure On_Connect (Main_Window : in out Gnoga.Gui.Window.Window_Type'Class;
@@ -404,7 +412,6 @@ package body User_IF is
       App_Data.Mines_Left.Text_Alignment (Value => Gnoga.Gui.Element.Center);
       App_Data.Mines_Left.Display (Value => "block");
       App_Data.Restart_Button.Create (Parent => App_Data.Right_View, Content => "New Game");
-      App_Data.Restart_Button.Background_Color (Enum => Gnoga.Types.Colors.Light_Green);
       App_Data.Restart_Button.Display (Value => "block");
       App_Data.Restart_Button.On_Click_Handler (Handler => When_Restart_Button'Access);
       App_Data.Level_Form.Create (Parent => App_Data.Right_View);
@@ -412,7 +419,6 @@ package body User_IF is
       App_Data.Level.Create (Form => App_Data.Level_Form);
       App_Data.Level.Width (Value => 57);
       Create_Level_Option_Menu (App_Data => App_Data.all);
-      App_Data.Level.Selected (Index => Default_Level);
       App_Data.Mark_Form.Create (Parent => App_Data.Right_View);
       App_Data.Mark_Form.Display (Value => "block");
       App_Data.Mark_Check.Create (Form => App_Data.Mark_Form);
@@ -428,27 +434,24 @@ package body User_IF is
       App_Data.Step_Label.Create
          (Form => App_Data.Step_Form, Label_For => App_Data.Step_Check, Content => "Auto Step after Mark", Auto_Place => False);
       App_Data.Rules.Create (Parent => App_Data.Right_View, Content => "Rules");
-      App_Data.Rules.Background_Color (Enum => Gnoga.Types.Colors.Pale_Violet_Red);
       App_Data.Rules.Display (Value => "block");
       App_Data.Rules.On_Click_Handler (Handler => Rules_Pressed'Access);
       App_Data.About.Create (Parent => App_Data.Right_View, Content => "About");
-      App_Data.About.Background_Color (Enum => Gnoga.Types.Colors.Yellow);
       App_Data.About.Display (Value => "block");
       App_Data.About.On_Click_Handler (Handler => About_Pressed'Access);
       App_Data.Quit.Create (Parent => App_Data.Right_View, Content => "Quit");
-      App_Data.Quit.Background_Color (Enum => Gnoga.Types.Colors.Pink);
       App_Data.Quit.Display (Value => "block");
       App_Data.Quit.On_Click_Handler (Handler => When_Close'Access);
-      App_Data.Game_Over.Create (Parent => App_Data.Right_View, Content => You_Won_Message);
-      App_Data.Game_Over.Width (Value => 100);
-      App_Data.Game_Over.Text_Alignment (Value => Gnoga.Gui.Element.Center);
-      App_Data.Game_Over.Display (Value => "block");
       App_Data.Mode_Form.Create (Parent => App_Data.Right_View);
       App_Data.Mode_Form.Display (Value => "block");
       App_Data.Mode_Check.Create (Form => App_Data.Mode_Form);
       App_Data.Mode_Check.Checked (Value => False);
       App_Data.Mode_Label.Create
          (Form => App_Data.Mode_Form, Label_For => App_Data.Mode_Check, Content => "Mark", Auto_Place => False);
+      App_Data.Game_Over.Create (Parent => App_Data.Right_View, Content => You_Won_Message);
+      App_Data.Game_Over.Width (Value => 100);
+      App_Data.Game_Over.Text_Alignment (Value => Gnoga.Gui.Element.Center);
+      App_Data.Game_Over.Display (Value => "block");
       Main_Window.Buffer_Connection (Value => False);
       Field.Operations.Reset (Field => App_Data.Field);
    end On_Connect;
