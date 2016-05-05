@@ -2,6 +2,7 @@
 -- Copyright (C) 2016 by PragmAda Software Engineering.  All rights reserved.
 -- **************************************************************************
 --
+-- v7.2 2016 May 15          Speed improvement
 -- v7.1 2016 Feb 15          Cleaned up unreferenced packages and variables that are not modified
 -- V7.0 2014 Dec 01          First Gnoga version
 --
@@ -31,12 +32,12 @@ package body Field.Operations is
                end if;
             end loop Count_Columns;
          end loop Count_Rows;
-      end if;
 
-      User_IF.Display_Count (Data    => Field.App_Data,
-                             Count   => Field.Mine_Field (Cell.Row, Cell.Column).Count,
-                             Stepped => Field.Mine_Field (Cell.Row, Cell.Column).State = Stepped_On,
-                             Cell    => Cell);
+         User_IF.Display_Count (Data    => Field.App_Data,
+                                Count   => Field.Mine_Field (Cell.Row, Cell.Column).Count,
+                                Stepped => Field.Mine_Field (Cell.Row, Cell.Column).State = Stepped_On,
+                                Cell    => Cell);
+      end if;
    end Detect;
 
    procedure Set_Mine_Count (Field : in out Field_Info; New_Mine_Count : in Natural) is
