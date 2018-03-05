@@ -1,8 +1,7 @@
 -- Mine Detector Game
--- Copyright (C) 2018 by PragmAda Software Engineering.  All rights reserved.
+-- Copyright (C) 2016 by PragmAda Software Engineering.  All rights reserved.
 -- **************************************************************************
 --
--- v7.3 2018 Mar 15          Graphical mine field
 -- v7.2 2016 Feb 15          Cleaned up unreferenced packages
 -- V7.1 2015 Jun 15          Switched from Docker to Grid and added touch-screen support
 -- V7.0 2014 Dec 01          First Gnoga version
@@ -16,7 +15,6 @@ pragma Elaborate (Field.Operations);
 
 with Gnoga.Application.Singleton;
 with Gnoga.Gui.Base;
-with Gnoga.Gui.Element.Canvas.Context_2D;
 with Gnoga.Gui.Element.Common;
 with Gnoga.Gui.Element.Form;
 with Gnoga.Gui.View.Grid;
@@ -29,12 +27,14 @@ use Ada.Characters;
 package body User_IF is
    Gray : constant Gnoga.Types.RGBA_Type := (Red => 224, Green => 224, Blue => 224, Alpha => 1.0);
 
+   type Button_Set is array (Field.Valid_Row, Field.Valid_Column) of Gnoga.Gui.Element.Common.Button_Type;
+
    Window         : Gnoga.Gui.Window.Window_Type;
    Big_View       : Gnoga.Gui.View.Grid.Grid_View_Type;
    Left_View      : aliased Gnoga.Gui.View.View_Type;
    Right_View     : aliased Gnoga.Gui.View.View_Type;
    Mines_Left     : Gnoga.Gui.Element.Common.Span_Type;
-   Button         : Gnoga.Gui.Element.Canvas.Canvas_Type;
+   Button         : Button_Set;
    Restart_Button : Gnoga.Gui.Element.Common.Button_Type;
    Level_Form     : Gnoga.Gui.Element.Form.Form_Type;
    Level          : Gnoga.Gui.Element.Form.Selection_Type;
@@ -68,11 +68,11 @@ package body User_IF is
                                     4 => (Name => "200", Mines => 200),
                                     5 => (Name => "250", Mines => 250) );
 
-   Default_Level : constant := 4;
+   Default_Level : constant := 2;
 
    Auto_Marking_Desired : Boolean := False;
    pragma Atomic (Auto_Marking_Desired);
-   Extended_Stepping_Desired : Boolean := True;
+   Extended_Stepping_Desired : Boolean := False;
    pragma Atomic (Extended_Stepping_Desired);
 
    subtype Cell_String is String (1 .. 1);
@@ -101,75 +101,18 @@ package body User_IF is
 
    Button_Size : constant := 30;
 
-   Light_Green : constant Gnoga.Types.RGBA_Type := Gnoga.Types.Colors.To_RGBA (Gnoga.Types.Colors.Light_Green);
-   Black       : constant Gnoga.Types.RGBA_Type := Gnoga.Types.Colors.To_RGBA (Gnoga.Types.Colors.Black);
-   White       : constant Gnoga.Types.RGBA_Type := Gnoga.Types.Colors.To_RGBA (Gnoga.Types.Colors.White);
-   Red         : constant Gnoga.Types.RGBA_Type := Gnoga.Types.Colors.To_RGBA (Gnoga.Types.Colors.Red);
-
    procedure Display (Cell : in Field.Cell_Location; Text : in Cell_String; Active : in Boolean) is
-      X : constant Natural := (Cell.Column - 1) * Button_Size;
-      Y : constant Natural := (Cell.Row - 1) * Button_Size;
-
-      Rectangle : constant Gnoga.Types.Rectangle_Type := (X => X, Y => Y, Width => Button_Size, Height => Button_Size);
-
-      Context : Gnoga.Gui.Element.Canvas.Context_2D.Context_2D_Type;
+      -- null;
    begin -- Display
-      Context.Get_Drawing_Context_2D (Canvas => Button);
+      Button (Cell.Row, Cell.Column).Text (Value => Text);
 
-      if Text = "X" then
-         Context.Fill_Color (Value => Red);
-      elsif Active then
-         Context.Fill_Color (Value => Gray);
+      if Active then
+         Button (Cell.Row, Cell.Column).Background_Color (RGBA => Gray);
+         Button (Cell.Row, Cell.Column).Shadow (Horizontal_Position => "1px", Vertical_Position => "1px", Inset_Shadow => True);
       else
-         Context.Fill_Color (Value => Light_Green);
+         Button (Cell.Row, Cell.Column).Background_Color (Enum => Gnoga.Types.Colors.Light_Green);
+         Button (Cell.Row, Cell.Column).Shadow_None;
       end if;
-
-      Context.Fill_Rectangle (Rectangle => Rectangle);
-      Context.Stroke_Color (Value => Black);
-      Context.Line_Width (Value => 1);
-      Context.Stroke_Rectangle (Rectangle => Rectangle);
-
-      case Text (Text'First) is
-      when ' ' =>
-         null;
-      when '0' .. '9' =>
-         Context.Font (Height => "20px");
-         Context.Fill_Color (Value => Black);
-         Context.Fill_Text (Text => Text, X => X + 7, Y => Y + 22);
-      when 'M' =>
-         Context.Fill_Color (Value => Red);
-         Context.Fill_Rectangle (Rectangle => (X => X + 7, Y => Y + 5, Width => 15, Height => 10) );
-         Context.Stroke_Color (Value => Black);
-         Context.Begin_Path;
-         Context.Move_To (X => X + 7, Y => Y +  5);
-         Context.Line_To (X => X + 7, Y => Y + 25);
-         Context.Stroke;
-      when 'X' =>
-         Context.Fill_Color (Value => Black);
-         Context.Begin_Path;
-         Context.Arc_Degrees
-            (X => X + Button_Size / 2, Y => Y + Button_Size / 2, Radius => 10, Starting_Angle => 0.0, Ending_Angle => 360.0);
-         Context.Fill;
-         Context.Line_Width (Value => 3);
-         Context.Begin_Path;
-         Context.Move_To (X => X + 3, Y => Y + 3);
-         Context.Line_To (X => X + Button_Size - 3, Y => Y + Button_Size - 3);
-         Context.Stroke;
-         Context.Begin_Path;
-         Context.Move_To (X => X + Button_Size - 3, Y => Y + 3);
-         Context.Line_To (X => X + 3, Y => Y + Button_Size - 3);
-         Context.Stroke;
-         Context.Begin_Path;
-         Context.Move_To (X => X + Button_Size / 2, Y => Y);
-         Context.Line_To (X => X + Button_Size / 2, Y => Y + Button_Size - 1);
-         Context.Stroke;
-         Context.Begin_Path;
-         Context.Move_To (X => X, Y => Y + Button_Size / 2);
-         Context.Line_To (X => X + Button_Size - 1, Y => Y + Button_Size / 2);
-         Context.Stroke;
-      when others =>
-         raise Program_Error;
-      end case;
 
       if Field.Operations.Game_State /= Field.Operations.In_Progress then
          Show_Game_Over;
@@ -264,31 +207,25 @@ package body User_IF is
       Gnoga.Log (Message => "Step_Toggle: " & Ada.Exceptions.Exception_Information (E) );
    end Step_Toggle;
 
-   procedure Button_Press (Object : in out Gnoga.Gui.Base.Base_Type'Class; Mouse_Event : in Gnoga.Gui.Base.Mouse_Event_Record) is
-      Row    : constant Field.Valid_Row    := Mouse_Event.Y / Button_Size + 1;
-      Column : constant Field.Valid_Column := Mouse_Event.X / Button_Size + 1;
+   procedure Button_Press (Object : in out Gnoga.Gui.Base.Base_Type'Class) is
+      Name : constant String := Object.ID;
+
+      Row    : constant Field.Valid_Row    := Field.Valid_Row'Value    (Name (Name'First    .. Name'First + 1) );
+      Column : constant Field.Valid_Column := Field.Valid_Column'Value (Name (Name'Last - 1 .. Name'Last) );
    begin -- Button_Press
-      case Mouse_Event.Message is
-      when Gnoga.Gui.Base.Click =>
-         Sequentializer.Respond (Action => Button_Press, Cell => (Row => Row, Column => Column) );
-      when others =>
-         null;
-      end case;
+      Sequentializer.Respond (Action => Button_Press, Cell => (Row => Row, Column => Column) );
    exception -- Button_Press
    when E : others =>
       Gnoga.Log (Message => "Button_Press: " & Ada.Exceptions.Exception_Information (E) );
    end Button_Press;
 
-   procedure Right_Click (Object : in out Gnoga.Gui.Base.Base_Type'Class; Mouse_Event : in Gnoga.Gui.Base.Mouse_Event_Record) is
-      Row    : constant Field.Valid_Row    := Mouse_Event.Y / Button_Size + 1;
-      Column : constant Field.Valid_Column := Mouse_Event.X / Button_Size + 1;
+   procedure Right_Click (Object : in out Gnoga.Gui.Base.Base_Type'Class) is
+      Name : constant String := Object.ID;
+
+      Row    : constant Field.Valid_Row    := Field.Valid_Row'Value    (Name (Name'First    .. Name'First + 1) );
+      Column : constant Field.Valid_Column := Field.Valid_Column'Value (Name (Name'Last - 1 .. Name'Last) );
    begin -- Right_Click
-      case Mouse_Event.Message is
-      when Gnoga.Gui.Base.Right_Click =>
-         Sequentializer.Respond (Action => Right_Click, Cell => (Row => Row, Column => Column) );
-      when others =>
-         null;
-      end case;
+      Sequentializer.Respond (Action => Right_Click, Cell => (Row => Row, Column => Column) );
    exception -- Right_Click
    when E : others =>
       Gnoga.Log (Message => "Right_Click: " & Ada.Exceptions.Exception_Information (E) );
@@ -465,10 +402,29 @@ begin -- User_IF
    Big_View.Background_Color (Enum => Gnoga.Types.Colors.Light_Blue);
    Left_View.Create (Parent => Big_View.Panel (1, 1).all);
    Left_View.Background_Color (Enum => Gnoga.Types.Colors.Light_Blue);
-   Button.Create
-      (Parent => Left_View, Width => Field.Valid_Column'Last * Button_Size, Height => Field.Valid_Row'Last * Button_Size);
-   Button.On_Mouse_Click_Handler (Handler => Button_Press'Access);
-   Button.On_Mouse_Right_Click_Handler (Handler => Right_Click'Access);
+   Left_View.Hidden;
+
+   Button_Row : for Row in Button'Range(1) loop
+      Button_Column : for Column in Button'Range (2) loop
+         Button (Row, Column).Create (Parent => Left_View, Content => " ", ID => Image (Row, Column) );
+         Button (Row, Column).Background_Color (Enum => Gnoga.Types.Colors.Light_Green);
+         Button (Row, Column).Overflow (Value => Gnoga.Gui.Element.Hidden);
+         Button (Row, Column).Vertical_Align (Value => Gnoga.Gui.Element.Middle);
+         Button (Row, Column).Minimum_Width  (Value => Button_Size);
+         Button (Row, Column).Maximum_Width  (Value => Button_Size);
+         Button (Row, Column).Minimum_Height (Value => Button_Size);
+         Button (Row, Column).Maximum_Height (Value => Button_Size);
+         Button (Row, Column).Text_Alignment (Value => Gnoga.Gui.Element.Center);
+         Button (Row, Column).Margin (Top => "1px", Right => "1px", Bottom => "1px", Left => "1px");
+         Button (Row, Column).Border (Width => "thin");
+         Button (Row, Column).On_Click_Handler (Handler => Button_Press'Access);
+         Button (Row, Column).On_Context_Menu_Handler (Handler => Right_Click'Access);
+      end loop Button_Column;
+
+      Left_View.Put_HTML (HTML => "<br />");
+   end loop Button_Row;
+
+   Left_View.Hidden (Value => False);
 
    Right_View.Create (Parent => Big_View.Panel (1, 2).all);
    Right_View.Background_Color (Enum => Gnoga.Types.Colors.Light_Blue);
@@ -494,7 +450,7 @@ begin -- User_IF
    Step_Form.Create (Parent => Right_View);
    Step_Form.Display (Value => "block");
    Step_Check.Create (Form => Step_Form);
-   Step_Check.Checked (Value => True);
+   Step_Check.Checked (Value => False);
    Step_Check.On_Click_Handler (Handler => Step_Toggle'Access);
    Step_Label.Create (Form => Step_Form, Label_For => Step_Check, Content => "Auto Step after Mark", Auto_Place => False);
    Rules.Create (Parent => Right_View, Content => "Rules");
