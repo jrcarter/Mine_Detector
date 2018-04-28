@@ -35,6 +35,8 @@ package body User_IF is
    Right_View     : aliased Gnoga.Gui.View.View_Type;
    Mines_Left     : Gnoga.Gui.Element.Common.Span_Type;
    Button         : Gnoga.Gui.Element.Canvas.Canvas_Type;
+   Flag           : Gnoga.Gui.Element.Canvas.Canvas_Type;
+   Drawing        : Gnoga.Gui.Element.Canvas.Canvas_Type;
    Restart_Button : Gnoga.Gui.Element.Common.Button_Type;
    Level_Form     : Gnoga.Gui.Element.Form.Form_Type;
    Level          : Gnoga.Gui.Element.Form.Selection_Type;
@@ -110,66 +112,69 @@ package body User_IF is
       X : constant Natural := (Cell.Column - 1) * Button_Size;
       Y : constant Natural := (Cell.Row - 1) * Button_Size;
 
-      Rectangle : constant Gnoga.Types.Rectangle_Type := (X => X, Y => Y, Width => Button_Size, Height => Button_Size);
+      Rectangle : constant Gnoga.Types.Rectangle_Type := (X => 0, Y => 0, Width => Button_Size, Height => Button_Size);
 
-      Context : Gnoga.Gui.Element.Canvas.Context_2D.Context_2D_Type;
+      Field_Context  : Gnoga.Gui.Element.Canvas.Context_2D.Context_2D_Type;
+      Button_Context : Gnoga.Gui.Element.Canvas.Context_2D.Context_2D_Type;
    begin -- Display
-      Context.Get_Drawing_Context_2D (Canvas => Button);
+      Field_Context.Get_Drawing_Context_2D (Canvas => Button);
 
-      if Text = "X" then
-         Context.Fill_Color (Value => Red);
-      elsif Stepped then
-         Context.Fill_Color (Value => Gray);
-      else
-         Context.Fill_Color (Value => Light_Green);
+      if Text = "M" then
+         Field_Context.Draw_Image (Image => Flag, X => X, Y => Y);
+
+         return;
       end if;
 
-      Context.Fill_Rectangle (Rectangle => Rectangle);
-      Context.Stroke_Color (Value => Black);
-      Context.Line_Width (Value => 1);
-      Context.Stroke_Rectangle (Rectangle => Rectangle);
+      Button_Context.Get_Drawing_Context_2D (Canvas => Drawing);
+
+      if Text = "X" then
+         Button_Context.Fill_Color (Value => Red);
+      elsif Stepped then
+         Button_Context.Fill_Color (Value => Gray);
+      else
+         Button_Context.Fill_Color (Value => Light_Green);
+      end if;
+
+      Button_Context.Fill_Rectangle (Rectangle => Rectangle);
+      Button_Context.Stroke_Color (Value => Black);
+      Button_Context.Line_Width (Value => 1);
+      Button_Context.Stroke_Rectangle (Rectangle => Rectangle);
 
       case Text (Text'First) is
       when ' ' =>
          null;
       when '0' .. '9' =>
-         Context.Font (Height => "20px");
-         Context.Fill_Color (Value => Black);
-         Context.Fill_Text (Text => Text, X => X + 7, Y => Y + 22);
-      when 'M' =>
-         Context.Fill_Color (Value => Red);
-         Context.Fill_Rectangle (Rectangle => (X => X + 7, Y => Y + 5, Width => 15, Height => 10) );
-         Context.Stroke_Color (Value => Black);
-         Context.Begin_Path;
-         Context.Move_To (X => X + 7, Y => Y +  5);
-         Context.Line_To (X => X + 7, Y => Y + 25);
-         Context.Stroke;
+         Button_Context.Font (Height => "20px");
+         Button_Context.Fill_Color (Value => Black);
+         Button_Context.Fill_Text (Text => Text, X => 7, Y => 22);
       when 'X' =>
-         Context.Fill_Color (Value => Black);
-         Context.Begin_Path;
-         Context.Arc_Degrees
-            (X => X + Button_Size / 2, Y => Y + Button_Size / 2, Radius => 10, Starting_Angle => 0.0, Ending_Angle => 360.0);
-         Context.Fill;
-         Context.Line_Width (Value => 3);
-         Context.Begin_Path;
-         Context.Move_To (X => X + 4, Y => Y + 4);
-         Context.Line_To (X => X + Button_Size - 4, Y => Y + Button_Size - 4);
-         Context.Stroke;
-         Context.Begin_Path;
-         Context.Move_To (X => X + Button_Size - 4, Y => Y + 4);
-         Context.Line_To (X => X + 4, Y => Y + Button_Size - 4);
-         Context.Stroke;
-         Context.Begin_Path;
-         Context.Move_To (X => X + Button_Size / 2, Y => Y);
-         Context.Line_To (X => X + Button_Size / 2, Y => Y + Button_Size - 1);
-         Context.Stroke;
-         Context.Begin_Path;
-         Context.Move_To (X => X, Y => Y + Button_Size / 2);
-         Context.Line_To (X => X + Button_Size - 1, Y => Y + Button_Size / 2);
-         Context.Stroke;
+         Button_Context.Fill_Color (Value => Black);
+         Button_Context.Begin_Path;
+         Button_Context.Arc_Degrees
+            (X => Button_Size / 2, Y => Button_Size / 2, Radius => 10, Starting_Angle => 0.0, Ending_Angle => 360.0);
+         Button_Context.Fill;
+         Button_Context.Line_Width (Value => 3);
+         Button_Context.Begin_Path;
+         Button_Context.Move_To (X => 4, Y => 4);
+         Button_Context.Line_To (X => Button_Size - 4, Y => Button_Size - 4);
+         Button_Context.Stroke;
+         Button_Context.Begin_Path;
+         Button_Context.Move_To (X => Button_Size - 4, Y => 4);
+         Button_Context.Line_To (X => 4, Y => Button_Size - 4);
+         Button_Context.Stroke;
+         Button_Context.Begin_Path;
+         Button_Context.Move_To (X => Button_Size / 2, Y => 0);
+         Button_Context.Line_To (X => Button_Size / 2, Y => Button_Size - 1);
+         Button_Context.Stroke;
+         Button_Context.Begin_Path;
+         Button_Context.Move_To (X => 0, Y => Button_Size / 2);
+         Button_Context.Line_To (X => Button_Size - 1, Y => Button_Size / 2);
+         Button_Context.Stroke;
       when others =>
          raise Program_Error;
       end case;
+
+      Field_Context.Draw_Image (Image => Drawing, X => X, Y => Y);
 
       if Field.Operations.Game_State /= Field.Operations.In_Progress then
          Show_Game_Over;
@@ -396,29 +401,6 @@ package body User_IF is
       Gnoga.Log (Message => "About_Pressed: " & Ada.Exceptions.Exception_Information (E) );
    end About_Pressed;
 
-   function Image (Row : Field.Valid_Row; Column : Field.Valid_Column) return String is
-   -- Returns a 4-Character String of the form "RRCC", where
-   --    RR is the zero-filled image of Row
-   --    CC is the zero-filled image of Column
-      Row_Image    : String   := Field.Valid_Row'Image    (Row);
-      Column_Image : String   := Field.Valid_Column'Image (Column);
-      Row_First    : Positive := Row_Image'First;
-      Column_First : Positive := Column_Image'First;
-   begin -- Image
-      Row_Image (Row_Image'First) := '0';
-      Column_Image (Column_Image'First) := '0';
-
-      if Row >= 10 then
-         Row_First := Row_First + 1;
-      end if;
-
-      if Column >= 10 then
-         Column_First := Column_First + 1;
-      end if;
-
-      return Row_Image (Row_First .. Row_Image'Last) & Column_Image (Column_First .. Column_Image'Last);
-   end Image;
-
    procedure Create_Level_Option_Menu is
       -- null;
    begin -- Create_Level_Option_Menu
@@ -469,6 +451,30 @@ begin -- User_IF
       (Parent => Left_View, Width => Field.Valid_Column'Last * Button_Size, Height => Field.Valid_Row'Last * Button_Size);
    Button.On_Mouse_Click_Handler (Handler => Button_Press'Access);
    Button.On_Mouse_Right_Click_Handler (Handler => Right_Click'Access);
+   Drawing.Create (Parent => Left_View, Width => Button_Size, Height => Button_Size);
+   Drawing.Hidden;
+   Flag.Create (Parent => Left_View, Width => Button_Size, Height => Button_Size);
+   Flag.Hidden;
+
+   Draw_Flag : declare
+      Rectangle : constant Gnoga.Types.Rectangle_Type := (X => 0, Y => 0, Width => Button_Size, Height => Button_Size);
+
+      Context : Gnoga.Gui.Element.Canvas.Context_2D.Context_2D_Type;
+   begin -- Draw_Flag
+      Context.Get_Drawing_Context_2D (Canvas => Flag);
+      Context.Fill_Color (Value => Light_Green);
+      Context.Fill_Rectangle (Rectangle => Rectangle);
+      Context.Stroke_Color (Value => Black);
+      Context.Line_Width (Value => 1);
+      Context.Stroke_Rectangle (Rectangle => Rectangle);
+      Context.Fill_Color (Value => Red);
+      Context.Fill_Rectangle (Rectangle => (X => 7, Y => 5, Width => 15, Height => 10) );
+      Context.Stroke_Color (Value => Black);
+      Context.Begin_Path;
+      Context.Move_To (X => 7, Y =>  5);
+      Context.Line_To (X => 7, Y => 25);
+      Context.Stroke;
+   end Draw_Flag;
 
    Right_View.Create (Parent => Big_View.Panel (1, 2).all);
    Right_View.Background_Color (Enum => Gnoga.Types.Colors.Light_Blue);
