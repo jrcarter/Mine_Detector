@@ -13,7 +13,7 @@ package User_IF is
                             Stepped  : in Boolean;
                             Cell     : in Field.Cell_Location);
 
-   procedure Display_Mark (Cell : in Field.Cell_Location); -- Display a marked cell
+   procedure Display_Mark (Count : in Field.Valid_Count; Cell : in Field.Cell_Location); -- Display a marked cell
 
    procedure Display_Mine (Cell : in Field.Cell_Location); -- Display a mine.
 

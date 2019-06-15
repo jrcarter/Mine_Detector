@@ -29,13 +29,15 @@ use Ada.Characters;
 package body User_IF is
    Gray : constant Gnoga.Types.RGBA_Type := (Red => 224, Green => 224, Blue => 224, Alpha => 1.0);
 
+   type Flag_Map is array (Field.Valid_Count) of Gnoga.Gui.Element.Canvas.Canvas_Type;
+
    Window         : Gnoga.Gui.Window.Window_Type;
    Big_View       : Gnoga.Gui.View.Grid.Grid_View_Type;
    Left_View      : aliased Gnoga.Gui.View.View_Type;
    Right_View     : aliased Gnoga.Gui.View.View_Type;
    Mines_Left     : Gnoga.Gui.Element.Common.Span_Type;
    Button         : Gnoga.Gui.Element.Canvas.Canvas_Type;
-   Flag           : Gnoga.Gui.Element.Canvas.Canvas_Type;
+   Flag           : Flag_Map;
    Drawing        : Gnoga.Gui.Element.Canvas.Canvas_Type;
    Restart_Button : Gnoga.Gui.Element.Common.Button_Type;
    Level_Form     : Gnoga.Gui.Element.Form.Form_Type;
@@ -118,13 +120,6 @@ package body User_IF is
       Button_Context : Gnoga.Gui.Element.Canvas.Context_2D.Context_2D_Type;
    begin -- Display
       Field_Context.Get_Drawing_Context_2D (Canvas => Button);
-
-      if Text = "M" then
-         Field_Context.Draw_Image (Image => Flag, X => X, Y => Y);
-
-         return;
-      end if;
-
       Button_Context.Get_Drawing_Context_2D (Canvas => Drawing);
 
       if Text = "X" then
@@ -199,10 +194,18 @@ package body User_IF is
                Stepped => Stepped);
    end Display_Count;
 
-   procedure Display_Mark (Cell : in Field.Cell_Location) is
-      -- null;
+   procedure Display_Mark (Count : in Field.Valid_Count; Cell : in Field.Cell_Location) is
+      X : constant Natural := (Cell.Column - 1) * Button_Size;
+      Y : constant Natural := (Cell.Row - 1) * Button_Size;
+
+      Field_Context  : Gnoga.Gui.Element.Canvas.Context_2D.Context_2D_Type;
    begin -- Display_Mark
-      Display (Cell => Cell, Text => "M", Stepped => False);
+      Field_Context.Get_Drawing_Context_2D (Canvas => Button);
+      Field_Context.Draw_Image (Image => Flag (Count), X => X, Y => Y);
+
+      if Field.Operations.Game_State /= Field.Operations.In_Progress then
+         Show_Game_Over;
+      end if;
    end Display_Mark;
 
    procedure Display_Mine (Cell : in Field.Cell_Location) is
@@ -453,15 +456,18 @@ begin -- User_IF
    Button.On_Mouse_Right_Click_Handler (Handler => Right_Click'Access);
    Drawing.Create (Parent => Left_View, Width => Button_Size, Height => Button_Size);
    Drawing.Hidden;
-   Flag.Create (Parent => Left_View, Width => Button_Size, Height => Button_Size);
-   Flag.Hidden;
 
-   Draw_Flag : declare
+   Create_Flags : for I in Flag'Range loop
+      Flag (I).Create (Parent => Left_View, Width => Button_Size, Height => Button_Size);
+      Flag (I).Hidden;
+   end loop Create_Flags;
+
+   Draw_Flag_0 : declare
       Rectangle : constant Gnoga.Types.Rectangle_Type := (X => 0, Y => 0, Width => Button_Size, Height => Button_Size);
 
       Context : Gnoga.Gui.Element.Canvas.Context_2D.Context_2D_Type;
-   begin -- Draw_Flag
-      Context.Get_Drawing_Context_2D (Canvas => Flag);
+   begin -- Draw_Flag_0
+      Context.Get_Drawing_Context_2D (Canvas => Flag (Flag'First) );
       Context.Fill_Color (Value => Light_Green);
       Context.Fill_Rectangle (Rectangle => Rectangle);
       Context.Stroke_Color (Value => Black);
@@ -474,7 +480,27 @@ begin -- User_IF
       Context.Move_To (X => 7, Y =>  5);
       Context.Line_To (X => 7, Y => 25);
       Context.Stroke;
-   end Draw_Flag;
+   end Draw_Flag_0;
+
+   Copy_0 : for I in Flag'First + 1 .. Flag'Last loop
+      Copy_One : declare
+         Context : Gnoga.Gui.Element.Canvas.Context_2D.Context_2D_Type;
+      begin -- Copy_One
+         Context.Get_Drawing_Context_2D (Canvas => Flag (I) );
+         Context.Draw_Image (Image => Flag (Flag'First), X => 0, Y => 0);
+      end Copy_One;
+   end loop Copy_0;
+
+   Draw_Counts : for I in Flag'Range loop
+      Draw_One : declare
+         Context : Gnoga.Gui.Element.Canvas.Context_2D.Context_2D_Type;
+      begin -- Draw_One
+         Context.Get_Drawing_Context_2D (Canvas => Flag (I) );
+         Context.Font;
+         Context.Fill_Color (Value => Black);
+         Context.Fill_Text (Text => Character'Val (Character'Pos ('0') + I) & "", X => Button_Size / 2, Y => 25);
+      end Draw_One;
+   end loop Draw_Counts;
 
    Right_View.Create (Parent => Big_View.Panel (1, 2).all);
    Right_View.Background_Color (Enum => Gnoga.Types.Colors.Light_Blue);

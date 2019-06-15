@@ -230,16 +230,14 @@ package body Field.Operations is
          case Old_State is
          when Normal => -- Mark it
             Mine_Field (Cell.Row, Cell.Column).State := Marked;
-            User_IF.Display_Mark (Cell => Cell);
+            User_IF.Display_Mark (Count => Mine_Field (Cell.Row, Cell.Column).Count, Cell => Cell);
             To_Mark := To_Mark - 1;
          when Marked => -- Unmark it
             Mine_Field (Cell.Row, Cell.Column).State := Normal;
 
             User_IF.Display_Count (Count   => Mine_Field (Cell.Row, Cell.Column).Count,
                                    Stepped => Mine_Field (Cell.Row, Cell.Column).State = Stepped_On,
-                                   Cell    => Cell
-                                  )
-               ;
+                                   Cell    => Cell);
 
             To_Mark := To_Mark + 1;
          when Stepped_On =>
@@ -276,7 +274,7 @@ package body Field.Operations is
       end if;
 
       if Mine_Field (Cell.Row, Cell.Column).State = Marked then
-         User_IF.Display_Mark (Cell => Cell);
+         User_IF.Display_Mark (Count => Mine_Field (Cell.Row, Cell.Column).Count, Cell => Cell);
 
          return;
       end if;
