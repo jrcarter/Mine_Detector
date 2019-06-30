@@ -1,7 +1,8 @@
 -- Mine Detector Game
--- Copyright (C) 2018 by PragmAda Software Engineering.  All rights reserved.
+-- Copyright (C) 2019 by PragmAda Software Engineering.  All rights reserved.
 -- **************************************************************************
 --
+-- v7.4 2019 Jul 01          Counts on flags, better quit handling for Epiphany
 -- v7.3 2018 Mar 15          Graphical mine field
 -- v7.2 2016 Feb 15          Cleaned up unreferenced packages
 -- V7.1 2015 Jun 15          Switched from Docker to Grid and added touch-screen support
@@ -412,6 +413,8 @@ package body User_IF is
       end loop Add_Options;
    end Create_Level_Option_Menu;
 
+   End_Message : constant String := "Mine Detector ended.";
+
    protected body Sequentializer is
       entry Respond (Action : in Action_ID; Cell : in Field.Cell_Location := (Row => 1, Column => 1) ) when True is
          -- null;
@@ -435,14 +438,21 @@ package body User_IF is
             Field.Operations.Set_Mine_Count (Levels (Level.Selected_Index).Mines);
             Field.Operations.Reset;
          when Quiting =>
-            Gnoga.Application.Singleton.End_Application;
+            New_View : declare
+               View : Gnoga.Gui.View.View_Type;
+            begin -- New_View
+               Big_View.Remove;
+               View.Create (Parent => Window);
+               View.Put_Line (End_Message);
+               Gnoga.Application.Singleton.End_Application;
+            end New_View;
          end case;
       end Respond;
    end Sequentializer;
 begin -- User_IF
    Field.Operations.Set_Mine_Count (Levels (Default_Level).Mines);
    Gnoga.Application.Title ("Mine Detector");
-   Gnoga.Application.HTML_On_Close ("Mine Detector ended.");
+   Gnoga.Application.HTML_On_Close (End_Message);
    Gnoga.Application.Open_URL;
    Gnoga.Application.Singleton.Initialize (Main_Window => Window);
    Window.Buffer_Connection;
