@@ -1,7 +1,8 @@
 -- Mine Detector Game
--- Copyright (C) 2019 by PragmAda Software Engineering.  All rights reserved.
+-- Copyright (C) 2021 by PragmAda Software Engineering.  All rights reserved.
 -- **************************************************************************
 --
+-- V7.5 2021 Jun 15          Fix GNAT 11 circular-elaboration error
 -- v7.4 2019 Jul 01          Counts on flags, better quit handling for Epiphany
 -- v7.3 2018 Mar 15          Graphical mine field
 -- v7.2 2016 Feb 15          Cleaned up unreferenced packages
@@ -449,6 +450,13 @@ package body User_IF is
          end case;
       end Respond;
    end Sequentializer;
+
+   procedure Play_Game is
+      -- Empty
+   begin -- Play_Game
+      Field.Operations.Reset;
+      Gnoga.Application.Singleton.Message_Loop;
+   end Play_Game;
 begin -- User_IF
    Field.Operations.Set_Mine_Count (Levels (Default_Level).Mines);
    Gnoga.Application.Title ("Mine Detector");
@@ -506,9 +514,9 @@ begin -- User_IF
          Context : Gnoga.Gui.Element.Canvas.Context_2D.Context_2D_Type;
       begin -- Draw_One
          Context.Get_Drawing_Context_2D (Canvas => Flag (I) );
-         Context.Font;
+         Context.Font (Height => "13px");
          Context.Fill_Color (Value => Black);
-         Context.Fill_Text (Text => Character'Val (Character'Pos ('0') + I) & "", X => Button_Size / 2, Y => 25);
+         Context.Fill_Text (Text => Character'Val (Character'Pos ('0') + I) & "", X => Button_Size / 2, Y => 26);
       end Draw_One;
    end loop Draw_Counts;
 
@@ -558,8 +566,6 @@ begin -- User_IF
    Mode_Check.Checked (Value => False);
    Mode_Label.Create (Form => Mode_Form, Label_For => Mode_Check, Content => "Mark", Auto_Place => False);
    Window.Buffer_Connection (Value => False);
-   Field.Operations.Reset;
-   Gnoga.Application.Singleton.Message_Loop;
 exception -- User_IF
 when E : others =>
    Gnoga.Log (Message => "User_IF: " & Ada.Exceptions.Exception_Information (E) );
