@@ -1,14 +1,19 @@
 -- Mine Detector Game
--- Copyright (C) 2014 by PragmAda Software Engineering.  All rights reserved.
+-- Copyright (C) 2021 by PragmAda Software Engineering.  All rights reserved.
 -- **************************************************************************
 --
 -- Provide the user interface
 --
+-- V7.1 2021 Jun 15          Fix GNAT 11 circular-elaboration error
 -- V7.0 2014 Dec 01          First Gnoga version
 --
 with Field;
 
 package User_IF is
+   procedure Play_Game;
+   -- Called from main program to start the game
+   -- Returns when the user quits
+
    procedure Display_Count (Count    : in Field.Valid_Count;
                             Stepped  : in Boolean;
                             Cell     : in Field.Cell_Location);

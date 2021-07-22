@@ -1,7 +1,9 @@
 -- Mine Detector Game
--- Copyright (C) 2019 by PragmAda Software Engineering.  All rights reserved.
+-- Copyright (C) 2021 by PragmAda Software Engineering.  All rights reserved.
 -- **************************************************************************
 --
+-- V8.0 2021 Jul 15          First Ada_GUI version
+-- V7.5 2021 Jun 15          Fix GNAT 11 circular-elaboration error
 -- v7.4 2019 Jul 01          Counts on flags, better quit handling for Epiphany
 -- v7.3 2018 Mar 15          Graphical mine field
 -- v7.2 2016 Feb 15          Cleaned up unreferenced packages
@@ -11,51 +13,33 @@
 
 with Ada.Characters.Latin_1;
 with Ada.Exceptions;
+with Ada.Numerics;
+with Ada.Text_IO;
 
 with Field.Operations;
 pragma Elaborate (Field.Operations);
 
-with Gnoga.Application.Singleton;
-with Gnoga.Gui.Base;
-with Gnoga.Gui.Element.Canvas.Context_2D;
-with Gnoga.Gui.Element.Common;
-with Gnoga.Gui.Element.Form;
-with Gnoga.Gui.View.Grid;
-with Gnoga.Gui.Window;
-with Gnoga.Types.Colors;
-
-use Ada;
-use Ada.Characters;
+with Ada_GUI;
 
 package body User_IF is
-   Gray : constant Gnoga.Types.RGBA_Type := (Red => 224, Green => 224, Blue => 224, Alpha => 1.0);
+   use Ada;
+   use Ada.Characters;
 
-   type Flag_Map is array (Field.Valid_Count) of Gnoga.Gui.Element.Canvas.Canvas_Type;
+   Gray : constant Ada_GUI.Color_Info := (Red => 224, Green => 224, Blue => 224, Alpha => 1.0);
 
-   Window         : Gnoga.Gui.Window.Window_Type;
-   Big_View       : Gnoga.Gui.View.Grid.Grid_View_Type;
-   Left_View      : aliased Gnoga.Gui.View.View_Type;
-   Right_View     : aliased Gnoga.Gui.View.View_Type;
-   Mines_Left     : Gnoga.Gui.Element.Common.Span_Type;
-   Button         : Gnoga.Gui.Element.Canvas.Canvas_Type;
-   Flag           : Flag_Map;
-   Drawing        : Gnoga.Gui.Element.Canvas.Canvas_Type;
-   Restart_Button : Gnoga.Gui.Element.Common.Button_Type;
-   Level_Form     : Gnoga.Gui.Element.Form.Form_Type;
-   Level          : Gnoga.Gui.Element.Form.Selection_Type;
-   Mark_Form      : Gnoga.Gui.Element.Form.Form_Type;
-   Mark_Check     : Gnoga.Gui.Element.Form.Check_Box_Type;
-   Mark_Label     : Gnoga.Gui.Element.Form.Label_Type;
-   Step_Form      : Gnoga.Gui.Element.Form.Form_Type;
-   Step_Check     : Gnoga.Gui.Element.Form.Check_Box_Type;
-   Step_Label     : Gnoga.Gui.Element.Form.Label_Type;
-   Rules          : Gnoga.Gui.Element.Common.Button_Type;
-   About          : Gnoga.Gui.Element.Common.Button_Type;
-   Quit           : Gnoga.Gui.Element.Common.Button_Type;
-   Game_Over      : Gnoga.Gui.Element.Common.Span_Type;
-   Mode_Form      : Gnoga.Gui.Element.Form.Form_Type;
-   Mode_Check     : Gnoga.Gui.Element.Form.Check_Box_Type;
-   Mode_Label     : Gnoga.Gui.Element.Form.Label_Type;
+
+   Mines_Left     : Ada_GUI.Widget_ID;
+   Button         : Ada_GUI.Widget_ID;
+   Drawing        : Ada_GUI.Widget_ID;
+   Restart_Button : Ada_GUI.Widget_ID;
+   Level          : Ada_GUI.Widget_ID;
+   Mark_Check     : Ada_GUI.Widget_ID;
+   Step_Check     : Ada_GUI.Widget_ID;
+   Rules          : Ada_GUI.Widget_ID;
+   About          : Ada_GUI.Widget_ID;
+   Quit           : Ada_GUI.Widget_ID;
+   Game_Over      : Ada_GUI.Widget_ID;
+   Mode_Check     : Ada_GUI.Widget_ID;
 
    You_Won_Message  : constant String := "You Won";
    You_Lost_Message : constant String := "BOOM!";
@@ -93,9 +77,11 @@ package body User_IF is
    begin -- Show_Game_Over
       case Field.Operations.Game_State is
       when Field.Operations.Won =>
-         Game_Over.Text (Value => You_Won_Message);
+         Game_Over.Set_Text (Text => You_Won_Message);
+         Game_Over.Set_Visibility (Visible => True);
       when Field.Operations.Lost =>
-         Game_Over.Text (Value => You_Lost_Message);
+         Game_Over.Set_Text (Text => You_Lost_Message);
+         Game_Over.Set_Visibility (Visible => True);
       when Field.Operations.In_Progress =>
          null;
       end case;
@@ -106,71 +92,53 @@ package body User_IF is
 
    Button_Size : constant := 30;
 
-   Light_Green : constant Gnoga.Types.RGBA_Type := Gnoga.Types.Colors.To_RGBA (Gnoga.Types.Colors.Light_Green);
-   Black       : constant Gnoga.Types.RGBA_Type := Gnoga.Types.Colors.To_RGBA (Gnoga.Types.Colors.Black);
-   White       : constant Gnoga.Types.RGBA_Type := Gnoga.Types.Colors.To_RGBA (Gnoga.Types.Colors.White);
-   Red         : constant Gnoga.Types.RGBA_Type := Gnoga.Types.Colors.To_RGBA (Gnoga.Types.Colors.Red);
+   Light_Green : constant Ada_GUI.Color_Info := Ada_GUI.To_Color (Ada_GUI.Light_Green);
+   Black       : constant Ada_GUI.Color_Info := Ada_GUI.To_Color (Ada_GUI.Black);
+   White       : constant Ada_GUI.Color_Info := Ada_GUI.To_Color (Ada_GUI.White);
+   Red         : constant Ada_GUI.Color_Info := Ada_GUI.To_Color (Ada_GUI.Red);
 
    procedure Display (Cell : in Field.Cell_Location; Text : in Cell_String; Stepped : in Boolean) is
       X : constant Natural := (Cell.Column - 1) * Button_Size;
       Y : constant Natural := (Cell.Row - 1) * Button_Size;
 
-      Rectangle : constant Gnoga.Types.Rectangle_Type := (X => 0, Y => 0, Width => Button_Size, Height => Button_Size);
-
-      Field_Context  : Gnoga.Gui.Element.Canvas.Context_2D.Context_2D_Type;
-      Button_Context : Gnoga.Gui.Element.Canvas.Context_2D.Context_2D_Type;
+      Color : Ada_GUI.Color_Info;
    begin -- Display
-      Field_Context.Get_Drawing_Context_2D (Canvas => Button);
-      Button_Context.Get_Drawing_Context_2D (Canvas => Drawing);
-
       if Text = "X" then
-         Button_Context.Fill_Color (Value => Red);
+         Color := Red;
       elsif Stepped then
-         Button_Context.Fill_Color (Value => Gray);
+         Color := Gray;
       else
-         Button_Context.Fill_Color (Value => Light_Green);
+         Color := Light_Green;
       end if;
 
-      Button_Context.Fill_Rectangle (Rectangle => Rectangle);
-      Button_Context.Stroke_Color (Value => Black);
-      Button_Context.Line_Width (Value => 1);
-      Button_Context.Stroke_Rectangle (Rectangle => Rectangle);
+      Drawing.Draw_Rectangle (From_X     => 0,
+                              From_Y     => 0,
+                              To_X       => Button_Size - 1,
+                              To_Y       => Button_Size - 1,
+                              Fill_Color => (None => False, Color => Color) );
 
       case Text (Text'First) is
       when ' ' =>
          null;
       when '0' .. '9' =>
-         Button_Context.Font (Height => "20px");
-         Button_Context.Fill_Color (Value => Black);
-         Button_Context.Fill_Text (Text => Text, X => 7, Y => 22);
+         Drawing.Draw_Text (X => 7, Y => 22, Text => Text);
       when 'X' =>
-         Button_Context.Fill_Color (Value => Black);
-         Button_Context.Begin_Path;
-         Button_Context.Arc_Degrees
-            (X => Button_Size / 2, Y => Button_Size / 2, Radius => 10, Starting_Angle => 0.0, Ending_Angle => 360.0);
-         Button_Context.Fill;
-         Button_Context.Line_Width (Value => 3);
-         Button_Context.Begin_Path;
-         Button_Context.Move_To (X => 4, Y => 4);
-         Button_Context.Line_To (X => Button_Size - 4, Y => Button_Size - 4);
-         Button_Context.Stroke;
-         Button_Context.Begin_Path;
-         Button_Context.Move_To (X => Button_Size - 4, Y => 4);
-         Button_Context.Line_To (X => 4, Y => Button_Size - 4);
-         Button_Context.Stroke;
-         Button_Context.Begin_Path;
-         Button_Context.Move_To (X => Button_Size / 2, Y => 0);
-         Button_Context.Line_To (X => Button_Size / 2, Y => Button_Size - 1);
-         Button_Context.Stroke;
-         Button_Context.Begin_Path;
-         Button_Context.Move_To (X => 0, Y => Button_Size / 2);
-         Button_Context.Line_To (X => Button_Size - 1, Y => Button_Size / 2);
-         Button_Context.Stroke;
+         Drawing.Draw_Arc (X          => Button_Size / 2,
+                           Y          => Button_Size / 2,
+                           Radius     => 10,
+                           Start      =>  0.0,
+                           Stop       =>  2.0 * Numerics.Pi,
+                           Line_Color => (None => True),
+                           Fill_Color => (None => False, Color => Black) );
+         Drawing.Draw_Line (From_X => 4, From_Y => 4, To_X => Button_Size - 4, To_Y => Button_Size - 4, Width => 3);
+         Drawing.Draw_Line (From_X => Button_Size - 4, From_Y => 4, To_X => 4, To_Y => Button_Size - 4, Width => 3);
+         Drawing.Draw_Line (From_X => Button_Size / 2, From_Y => 0, To_X => Button_Size / 2, To_Y => Button_Size - 1, Width => 3);
+         Drawing.Draw_Line (From_X => 0, From_Y => Button_Size / 2, To_X => Button_Size - 1, To_Y => Button_Size / 2, Width => 3);
       when others =>
          raise Program_Error;
       end case;
 
-      Field_Context.Draw_Image (Image => Drawing, X => X, Y => Y);
+      Button.Replace_Pixels (Image => Drawing, X => X, Y => Y);
 
       if Field.Operations.Game_State /= Field.Operations.In_Progress then
          Show_Game_Over;
@@ -199,10 +167,22 @@ package body User_IF is
       X : constant Natural := (Cell.Column - 1) * Button_Size;
       Y : constant Natural := (Cell.Row - 1) * Button_Size;
 
-      Field_Context  : Gnoga.Gui.Element.Canvas.Context_2D.Context_2D_Type;
+      Zero_Pos : constant := Character'Pos ('0');
    begin -- Display_Mark
-      Field_Context.Get_Drawing_Context_2D (Canvas => Button);
-      Field_Context.Draw_Image (Image => Flag (Count), X => X, Y => Y);
+      Drawing.Draw_Rectangle (From_X     => 0,
+                              From_Y     => 0,
+                              To_X       => Button_Size - 1,
+                              To_Y       => Button_Size - 1,
+                              Fill_Color => (None => False, Color => Light_Green) );
+      Drawing.Draw_Rectangle (From_X     =>  7,
+                              From_Y     =>  5,
+                              To_X       => 21,
+                              To_Y       => 14,
+                              Line_Color => (None => True),
+                              Fill_Color => (None => False, Color => Red) );
+      Drawing.Draw_Line (From_X => 7, From_Y => 5, To_X => 7, To_Y => 25);
+      Drawing.Draw_Text (X => Button_Size / 2, Y => 26, Text => Character'Val (Zero_Pos + Count) & "", Height => 13);
+      Button.Replace_Pixels (Image => Drawing, X => X, Y => Y);
 
       if Field.Operations.Game_State /= Field.Operations.In_Progress then
          Show_Game_Over;
@@ -218,14 +198,15 @@ package body User_IF is
    procedure Display_To_Go (To_Go : in Integer) is
       Image : constant String := Integer'Image (To_Go);
    begin -- Display_To_Go
-      Mines_Left.Text (Value => Image);
+      Mines_Left.Set_Text (Text => Image);
    end Display_To_Go;
 
    procedure Reset_Screen is
       -- null;
    begin -- Reset_Screen
-      Mines_Left.Text (Value => "0");
-      Game_Over.Text  (Value => "");
+      Mines_Left.Set_Text (Text => "0");
+      Game_Over.Set_Text  (Text => "");
+      Game_Over.Set_Visibility (Visible => False);
 
       Button_Row : for Row in Field.Valid_Row loop
          Button_Column : for Column in Field.Valid_Column loop
@@ -246,73 +227,63 @@ package body User_IF is
       return Extended_Stepping_Desired;
    end Extended_Stepping;
 
-   procedure When_Close (Object : in out Gnoga.Gui.Base.Base_Type'Class) is
+   procedure When_Close is
       -- null;
    begin -- When_Close
       Sequentializer.Respond (Action => Quiting);
    exception -- When_Close
    when E : others =>
-      Gnoga.Log (Message => "When_Close: " & Ada.Exceptions.Exception_Information (E) );
+      Text_IO.Put_Line (Item => "When_Close: " & Ada.Exceptions.Exception_Information (E) );
    end When_Close;
 
-   procedure Mark_Toggle (Object : in out Gnoga.Gui.Base.Base_Type'Class) is
+   procedure Mark_Toggle is
       -- null;
    begin -- Mark_Toggle
-      Auto_Marking_Desired := Mark_Check.Checked;
+      Auto_Marking_Desired := Mark_Check.Active;
    exception -- Mark_Toggle
    when E : others =>
-      Gnoga.Log (Message => "Mark_Toggle: " & Ada.Exceptions.Exception_Information (E) );
+      Text_IO.Put_Line (Item => "Mark_Toggle: " & Ada.Exceptions.Exception_Information (E) );
    end Mark_Toggle;
 
-   procedure Step_Toggle (Object : in out Gnoga.Gui.Base.Base_Type'Class) is
+   procedure Step_Toggle is
       -- null;
    begin -- Step_Toggle
-      Extended_Stepping_Desired := Step_Check.Checked;
+      Extended_Stepping_Desired := Step_Check.Active;
    exception -- Step_Toggle
    when E : others =>
-      Gnoga.Log (Message => "Step_Toggle: " & Ada.Exceptions.Exception_Information (E) );
+      Text_IO.Put_Line (Item => "Step_Toggle: " & Ada.Exceptions.Exception_Information (E) );
    end Step_Toggle;
 
-   procedure Button_Press (Object : in out Gnoga.Gui.Base.Base_Type'Class; Mouse_Event : in Gnoga.Gui.Base.Mouse_Event_Record) is
+   procedure Button_Press (Mouse_Event : in Ada_GUI.Mouse_Event_Info) is
       Row    : constant Field.Valid_Row    := Mouse_Event.Y / Button_Size + 1;
       Column : constant Field.Valid_Column := Mouse_Event.X / Button_Size + 1;
    begin -- Button_Press
-      case Mouse_Event.Message is
-      when Gnoga.Gui.Base.Click =>
-         Sequentializer.Respond (Action => Button_Press, Cell => (Row => Row, Column => Column) );
-      when others =>
-         null;
-      end case;
+      Sequentializer.Respond (Action => Button_Press, Cell => (Row => Row, Column => Column) );
    exception -- Button_Press
    when E : others =>
-      Gnoga.Log (Message => "Button_Press: " & Ada.Exceptions.Exception_Information (E) );
+      Text_IO.Put_Line (Item => "Button_Press: " & Ada.Exceptions.Exception_Information (E) );
    end Button_Press;
 
-   procedure Right_Click (Object : in out Gnoga.Gui.Base.Base_Type'Class; Mouse_Event : in Gnoga.Gui.Base.Mouse_Event_Record) is
+   procedure Right_Click (Mouse_Event : in Ada_GUI.Mouse_Event_Info) is
       Row    : constant Field.Valid_Row    := Mouse_Event.Y / Button_Size + 1;
       Column : constant Field.Valid_Column := Mouse_Event.X / Button_Size + 1;
    begin -- Right_Click
-      case Mouse_Event.Message is
-      when Gnoga.Gui.Base.Right_Click =>
-         Sequentializer.Respond (Action => Right_Click, Cell => (Row => Row, Column => Column) );
-      when others =>
-         null;
-      end case;
+      Sequentializer.Respond (Action => Right_Click, Cell => (Row => Row, Column => Column) );
    exception -- Right_Click
    when E : others =>
-      Gnoga.Log (Message => "Right_Click: " & Ada.Exceptions.Exception_Information (E) );
+      Text_IO.Put_Line (Item => "Right_Click: " & Ada.Exceptions.Exception_Information (E) );
    end Right_Click;
 
-   procedure When_Restart_Button (Object : in out Gnoga.Gui.Base.Base_Type'Class) is
+   procedure When_Restart_Button is
       -- null;
    begin -- When_Restart_Button
       Sequentializer.Respond (Action => Restart);
    exception -- When_Restart_Button
    when E : others =>
-      Gnoga.Log (Message => "When_Restart_Button: " & Ada.Exceptions.Exception_Information (E) );
+      Text_IO.Put_Line (Item => "When_Restart_Button: " & Ada.Exceptions.Exception_Information (E) );
    end When_Restart_Button;
 
-   procedure Rules_Pressed (Object : in out Gnoga.Gui.Base.Base_Type'Class) is
+   procedure Rules_Pressed is
       Rules : constant String :=
          "The object of the game is to mark all cells containing " &
          "mines and to step on all cells that do not contain a " &
@@ -385,35 +356,31 @@ package body User_IF is
          "cell. When this box is checked, clicking on a cell marks or " &
          "unmarks the cell.";
    begin -- Rules_Pressed
-      Window.Alert (Message => Rules);
+      Ada_GUI.Show_Message_Box (Text => Rules);
    exception -- Rules_Pressed
    when E : others =>
-      Gnoga.Log (Message => "Rules_Pressed: " & Ada.Exceptions.Exception_Information (E) );
+      Text_IO.Put_Line (Item => "Rules_Pressed: " & Ada.Exceptions.Exception_Information (E) );
    end Rules_Pressed;
 
-   procedure About_Pressed (Object : in out Gnoga.Gui.Base.Base_Type'Class) is
+   procedure About_Pressed is
       -- null;
    begin -- About_Pressed
-      Window.Alert (Message => "Mine Detector" & Latin_1.LF &
-                               "Copyright (C) 2014 by" & Latin_1.LF &
-                               "PragmAda Software Engineering" & Latin_1.LF &
-                               "Released as Free Software under the terms" & Latin_1.LF &
-                               "of the GNU Public License" & Latin_1.LF &
-                               '"' & "Ada Inside" & '"');
+      Ada_GUI.Show_Message_Box (Text => "Mine Detector" & Latin_1.LF & "Copyright (C) 2021 by" & Latin_1.LF &
+                                        "PragmAda Software Engineering" & Latin_1.LF &
+                                        "Released as Free Software under the terms" & Latin_1.LF &
+                                        "of the GNU Public License" & Latin_1.LF & '"' & "Ada Inside" & '"');
    exception -- About_Pressed
    when E : others =>
-      Gnoga.Log (Message => "About_Pressed: " & Ada.Exceptions.Exception_Information (E) );
+      Text_IO.Put_Line (Item => "About_Pressed: " & Ada.Exceptions.Exception_Information (E) );
    end About_Pressed;
 
    procedure Create_Level_Option_Menu is
       -- null;
    begin -- Create_Level_Option_Menu
       Add_Options : for I in Levels'range loop
-         Level.Add_Option (Value => Levels (I).Name, Text => Levels (I).Name);
+         Level.Insert (Text => Levels (I).Name);
       end loop Add_Options;
    end Create_Level_Option_Menu;
-
-   End_Message : constant String := "Mine Detector ended.";
 
    protected body Sequentializer is
       entry Respond (Action : in Action_ID; Cell : in Field.Cell_Location := (Row => 1, Column => 1) ) when True is
@@ -423,7 +390,7 @@ package body User_IF is
          when Button_Press =>
             if Field.Operations.Game_State /= Field.Operations.In_Progress then
                Show_Game_Over;
-            elsif Mode_Check.Checked then
+            elsif Mode_Check.Active then
                Field.Operations.Mark (Cell => Cell);
             else
                Field.Operations.Step (Cell => Cell);
@@ -435,134 +402,86 @@ package body User_IF is
                Field.Operations.Mark (Cell => Cell);
             end if;
          when Restart =>
-            Field.Operations.Set_Mine_Count (Levels (Level.Selected_Index).Mines);
+            Field.Operations.Set_Mine_Count (Levels (Level.Selected).Mines);
             Field.Operations.Reset;
          when Quiting =>
-            New_View : declare
-               View : Gnoga.Gui.View.View_Type;
-            begin -- New_View
-               Big_View.Remove;
-               View.Create (Parent => Window);
-               View.Put_Line (End_Message);
-               Gnoga.Application.Singleton.End_Application;
-            end New_View;
+            Ada_GUI.End_GUI;
          end case;
       end Respond;
    end Sequentializer;
+
+   procedure Play_Game is
+      Event : Ada_GUI.Next_Result_Info;
+
+      use type Ada_GUI.Event_Kind_ID;
+      use type Ada_GUI.Widget_ID;
+   begin -- Play_Game
+      Field.Operations.Reset;
+
+      All_Events : loop
+         Handle_Error : begin
+            Event := Ada_GUI.Next_Event;
+
+            if not Event.Timed_Out and then Event.Event.Kind in Ada_GUI.Left_Click | Ada_GUI.Right_Click then
+               if Event.Event.ID = Button then
+                  if Event.Event.Kind = Ada_GUI.Left_Click then
+                     Button_Press (Mouse_Event => Event.Event.Mouse);
+                  elsif Event.Event.Kind = Ada_GUI.Right_Click then
+                     Right_Click (Mouse_Event => Event.Event.Mouse);
+                  else
+                     null;
+                  end if;
+               elsif Event.Event.ID = Restart_Button then
+                  When_Restart_Button;
+               elsif Event.Event.ID = Mark_Check then
+                  Mark_Toggle;
+               elsif Event.Event.ID = Step_Check then
+                  Step_Toggle;
+               elsif Event.Event.ID = Rules then
+                  Rules_Pressed;
+               elsif Event.Event.ID = About then
+                  About_Pressed;
+               elsif Event.Event.ID = Quit then
+                  When_Close;
+
+                  exit All_Events;
+               else
+                  null;
+               end if;
+            end if;
+         exception -- Handle_Error
+         when E : others =>
+            Text_IO.Put_Line (Item => "Event loop: " & Ada.Exceptions.Exception_Information (E) );
+         end Handle_Error;
+      end loop All_Events;
+   end Play_Game;
 begin -- User_IF
    Field.Operations.Set_Mine_Count (Levels (Default_Level).Mines);
-   Gnoga.Application.Title ("Mine Detector");
-   Gnoga.Application.HTML_On_Close (End_Message);
-   Gnoga.Application.Open_URL;
-   Gnoga.Application.Singleton.Initialize (Main_Window => Window);
-   Window.Buffer_Connection;
-   Big_View.Create (Parent => Window, Layout => Gnoga.Gui.View.Grid.Horizontal_Split, Set_Sizes => False);
-   Big_View.Background_Color (Enum => Gnoga.Types.Colors.Light_Blue);
-   Left_View.Create (Parent => Big_View.Panel (1, 1).all);
-   Left_View.Background_Color (Enum => Gnoga.Types.Colors.Light_Blue);
-   Button.Create
-      (Parent => Left_View, Width => Field.Valid_Column'Last * Button_Size, Height => Field.Valid_Row'Last * Button_Size);
-   Button.On_Mouse_Click_Handler (Handler => Button_Press'Access);
-   Button.On_Mouse_Right_Click_Handler (Handler => Right_Click'Access);
-   Drawing.Create (Parent => Left_View, Width => Button_Size, Height => Button_Size);
-   Drawing.Hidden;
+   Ada_GUI.Set_Up (Grid => (1 => (1 => Ada_GUI.Right, 2 => Ada_GUI.Center, 3 => Ada_GUI.Left) ), Title => "Mine Detector");
+   Ada_GUI.Set_Background_Color (Color => Ada_GUI.To_Color (Ada_GUI.Light_Blue) );
+   Button := Ada_GUI.New_Graphic_Area
+      (Width => Field.Valid_Column'Last * Button_Size, Height => Field.Valid_Row'Last * Button_Size);
+   Drawing := Ada_GUI.New_Graphic_Area (Width => Button_Size, Height => Button_Size, Break_Before => True);
+   Drawing.Set_Visibility (Visible => False);
 
-   Create_Flags : for I in Flag'Range loop
-      Flag (I).Create (Parent => Left_View, Width => Button_Size, Height => Button_Size);
-      Flag (I).Hidden;
-   end loop Create_Flags;
-
-   Draw_Flag_0 : declare
-      Rectangle : constant Gnoga.Types.Rectangle_Type := (X => 0, Y => 0, Width => Button_Size, Height => Button_Size);
-
-      Context : Gnoga.Gui.Element.Canvas.Context_2D.Context_2D_Type;
-   begin -- Draw_Flag_0
-      Context.Get_Drawing_Context_2D (Canvas => Flag (Flag'First) );
-      Context.Fill_Color (Value => Light_Green);
-      Context.Fill_Rectangle (Rectangle => Rectangle);
-      Context.Stroke_Color (Value => Black);
-      Context.Line_Width (Value => 1);
-      Context.Stroke_Rectangle (Rectangle => Rectangle);
-      Context.Fill_Color (Value => Red);
-      Context.Fill_Rectangle (Rectangle => (X => 7, Y => 5, Width => 15, Height => 10) );
-      Context.Stroke_Color (Value => Black);
-      Context.Begin_Path;
-      Context.Move_To (X => 7, Y =>  5);
-      Context.Line_To (X => 7, Y => 25);
-      Context.Stroke;
-   end Draw_Flag_0;
-
-   Copy_0 : for I in Flag'First + 1 .. Flag'Last loop
-      Copy_One : declare
-         Context : Gnoga.Gui.Element.Canvas.Context_2D.Context_2D_Type;
-      begin -- Copy_One
-         Context.Get_Drawing_Context_2D (Canvas => Flag (I) );
-         Context.Draw_Image (Image => Flag (Flag'First), X => 0, Y => 0);
-      end Copy_One;
-   end loop Copy_0;
-
-   Draw_Counts : for I in Flag'Range loop
-      Draw_One : declare
-         Context : Gnoga.Gui.Element.Canvas.Context_2D.Context_2D_Type;
-      begin -- Draw_One
-         Context.Get_Drawing_Context_2D (Canvas => Flag (I) );
-         Context.Font;
-         Context.Fill_Color (Value => Black);
-         Context.Fill_Text (Text => Character'Val (Character'Pos ('0') + I) & "", X => Button_Size / 2, Y => 25);
-      end Draw_One;
-   end loop Draw_Counts;
-
-   Right_View.Create (Parent => Big_View.Panel (1, 2).all);
-   Right_View.Background_Color (Enum => Gnoga.Types.Colors.Light_Blue);
-   Mines_Left.Create (Parent => Right_View, Content => "0");
-   Mines_Left.Width (Value => 100);
-   Mines_Left.Text_Alignment (Value => Gnoga.Gui.Element.Center);
-   Mines_Left.Display (Value => "block");
-   Restart_Button.Create (Parent => Right_View, Content => "New Game");
-   Restart_Button.Display (Value => "block");
-   Restart_Button.On_Click_Handler (Handler => When_Restart_Button'Access);
-   Level_Form.Create (Parent => Right_View);
-   Level_Form.Display (Value => "block");
-   Level.Create (Form => Level_Form);
-   Level.Width (Value => 57);
+   Mines_Left := Ada_GUI.New_Background_Text (Column => 3, Text => "0");
+   Mines_Left.Set_Text_Aligbnment (Alignment => Ada_GUI.Center);
+   Restart_Button := Ada_GUI.New_Button (Column => 3, Text => "New Game", Break_Before => True);
+   Level := Ada_GUI.New_Selection_List (Column => 3, Break_Before => True);
    Create_Level_Option_Menu;
-   Level.Selected (Index => Default_Level);
-   Mark_Form.Create (Parent => Right_View);
-   Mark_Form.Display (Value => "block");
-   Mark_Check.Create (Form => Mark_Form);
-   Mark_Check.Checked (Value => False);
-   Mark_Check.On_Click_Handler (Handler => Mark_Toggle'Access);
-   Mark_Label.Create (Form => Mark_Form, Label_For => Mark_Check, Content => "Auto Mark", Auto_Place => False);
-   Step_Form.Create (Parent => Right_View);
-   Step_Form.Display (Value => "block");
-   Step_Check.Create (Form => Step_Form);
-   Step_Check.Checked (Value => True);
-   Step_Check.On_Click_Handler (Handler => Step_Toggle'Access);
-   Step_Label.Create (Form => Step_Form, Label_For => Step_Check, Content => "Auto Step after Mark", Auto_Place => False);
-   Rules.Create (Parent => Right_View, Content => "Rules");
-   Rules.Display (Value => "block");
-   Rules.On_Click_Handler (Handler => Rules_Pressed'Access);
-   About.Create (Parent => Right_View, Content => "About");
-   About.Display (Value => "block");
-   About.On_Click_Handler (Handler => About_Pressed'Access);
-   Quit.Create (Parent => Right_View, Content => "Quit");
-   Quit.Display (Value => "block");
-   Quit.On_Click_Handler (Handler => When_Close'Access);
-   Game_Over.Create (Parent => Right_View, Content => You_Won_Message);
-   Game_Over.Width (Value => 100);
-   Game_Over.Text_Alignment (Value => Gnoga.Gui.Element.Center);
-   Game_Over.Display (Value => "block");
-   Mode_Form.Create (Parent => Right_View);
-   Mode_Form.Display (Value => "block");
-   Mode_Check.Create (Form => Mode_Form);
-   Mode_Check.Checked (Value => False);
-   Mode_Label.Create (Form => Mode_Form, Label_For => Mode_Check, Content => "Mark", Auto_Place => False);
-   Window.Buffer_Connection (Value => False);
-   Field.Operations.Reset;
-   Gnoga.Application.Singleton.Message_Loop;
+   Level.Set_Selected (Index => Default_Level);
+   Mark_Check := Ada_GUI.New_Check_Box (Column => 3, Label => "Auto Mark", Break_Before => True);
+   Step_Check := Ada_GUI.New_Check_Box (Column => 3, Label => "Auto Step after Mark", Break_Before => True, Active => True);
+   Rules := Ada_GUI.New_Button (Column => 3, Text => "Rules", Break_Before => True);
+   About := Ada_GUI.New_Button (Column => 3, Text => "About", Break_Before => True);
+   Quit := Ada_GUI.New_Button (Column => 3, Text => "Quit", Break_Before => True);
+   Game_Over := Ada_GUI.New_Background_Text (Column => 3, Text => You_Won_Message, Break_Before => True);
+   Game_Over.Set_Text_Aligbnment (Alignment => Ada_GUI.Center);
+   Game_Over.Set_Visibility (Visible => False);
+   Mode_Check := Ada_GUI.New_Check_Box (Column => 3, Label => "Mark", Break_Before => True);
 exception -- User_IF
 when E : others =>
-   Gnoga.Log (Message => "User_IF: " & Ada.Exceptions.Exception_Information (E) );
+   Text_IO.Put_Line (Item => "User_IF: " & Ada.Exceptions.Exception_Information (E) );
 end User_IF;
 --
 -- This is free software; you can redistribute it and/or modify it under
