@@ -457,7 +457,10 @@ package body User_IF is
    end Play_Game;
 begin -- User_IF
    Field.Operations.Set_Mine_Count (Levels (Default_Level).Mines);
-   Ada_GUI.Set_Up (Grid => (1 => (1 => Ada_GUI.Right, 2 => Ada_GUI.Center, 3 => Ada_GUI.Left) ), Title => "Mine Detector");
+   Ada_GUI.Set_Up (Grid => (1 => (1 => (Kind => Ada_GUI.Area, Alignment => Ada_GUI.Right),
+                                  2 => (Kind => Ada_GUI.Area, Alignment => Ada_GUI.Center),
+                                  3 => (Kind => Ada_GUI.Area, Alignment => Ada_GUI.Left) ) ),
+                   Title => "Mine Detector");
    Ada_GUI.Set_Background_Color (Color => Ada_GUI.To_Color (Ada_GUI.Light_Blue) );
    Button := Ada_GUI.New_Graphic_Area
       (Width => Field.Valid_Column'Last * Button_Size, Height => Field.Valid_Row'Last * Button_Size);
