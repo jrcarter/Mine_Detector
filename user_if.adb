@@ -2,6 +2,7 @@
 -- Copyright (C) 2021 by PragmAda Software Engineering.  All rights reserved.
 -- **************************************************************************
 --
+-- V8.1 2021 Aug 01          Pre-drawn flags
 -- V8.0 2021 Jul 15          First Ada_GUI version
 -- V7.5 2021 Jun 15          Fix GNAT 11 circular-elaboration error
 -- v7.4 2019 Jul 01          Counts on flags, better quit handling for Epiphany
@@ -27,10 +28,12 @@ package body User_IF is
 
    Gray : constant Ada_GUI.Color_Info := (Red => 224, Green => 224, Blue => 224, Alpha => 1.0);
 
+   type Flag_Set is array (Field.Valid_Count) of Ada_GUI.Widget_ID;
 
    Mines_Left     : Ada_GUI.Widget_ID;
    Button         : Ada_GUI.Widget_ID;
    Drawing        : Ada_GUI.Widget_ID;
+   Flag           : Flag_Set;
    Restart_Button : Ada_GUI.Widget_ID;
    Level          : Ada_GUI.Widget_ID;
    Mark_Check     : Ada_GUI.Widget_ID;
@@ -65,12 +68,6 @@ package body User_IF is
    pragma Atomic (Extended_Stepping_Desired);
 
    subtype Cell_String is String (1 .. 1);
-
-   type Action_ID is (Button_Press, Right_Click, Restart, Quiting);
-
-   protected Sequentializer is
-      entry Respond (Action : in Action_ID; Cell : in Field.Cell_Location := (Row => 1, Column => 1) );
-   end Sequentializer;
 
    procedure Show_Game_Over is
       -- null;
@@ -166,23 +163,8 @@ package body User_IF is
    procedure Display_Mark (Count : in Field.Valid_Count; Cell : in Field.Cell_Location) is
       X : constant Natural := (Cell.Column - 1) * Button_Size;
       Y : constant Natural := (Cell.Row - 1) * Button_Size;
-
-      Zero_Pos : constant := Character'Pos ('0');
    begin -- Display_Mark
-      Drawing.Draw_Rectangle (From_X     => 0,
-                              From_Y     => 0,
-                              To_X       => Button_Size - 1,
-                              To_Y       => Button_Size - 1,
-                              Fill_Color => (None => False, Color => Light_Green) );
-      Drawing.Draw_Rectangle (From_X     =>  7,
-                              From_Y     =>  5,
-                              To_X       => 21,
-                              To_Y       => 14,
-                              Line_Color => (None => True),
-                              Fill_Color => (None => False, Color => Red) );
-      Drawing.Draw_Line (From_X => 7, From_Y => 5, To_X => 7, To_Y => 25);
-      Drawing.Draw_Text (X => Button_Size / 2, Y => 26, Text => Character'Val (Zero_Pos + Count) & "", Height => 13);
-      Button.Replace_Pixels (Image => Drawing, X => X, Y => Y);
+      Button.Replace_Pixels (Image => Flag (Count), X => X, Y => Y);
 
       if Field.Operations.Game_State /= Field.Operations.In_Progress then
          Show_Game_Over;
@@ -227,38 +209,17 @@ package body User_IF is
       return Extended_Stepping_Desired;
    end Extended_Stepping;
 
-   procedure When_Close is
-      -- null;
-   begin -- When_Close
-      Sequentializer.Respond (Action => Quiting);
-   exception -- When_Close
-   when E : others =>
-      Text_IO.Put_Line (Item => "When_Close: " & Ada.Exceptions.Exception_Information (E) );
-   end When_Close;
-
-   procedure Mark_Toggle is
-      -- null;
-   begin -- Mark_Toggle
-      Auto_Marking_Desired := Mark_Check.Active;
-   exception -- Mark_Toggle
-   when E : others =>
-      Text_IO.Put_Line (Item => "Mark_Toggle: " & Ada.Exceptions.Exception_Information (E) );
-   end Mark_Toggle;
-
-   procedure Step_Toggle is
-      -- null;
-   begin -- Step_Toggle
-      Extended_Stepping_Desired := Step_Check.Active;
-   exception -- Step_Toggle
-   when E : others =>
-      Text_IO.Put_Line (Item => "Step_Toggle: " & Ada.Exceptions.Exception_Information (E) );
-   end Step_Toggle;
-
    procedure Button_Press (Mouse_Event : in Ada_GUI.Mouse_Event_Info) is
       Row    : constant Field.Valid_Row    := Mouse_Event.Y / Button_Size + 1;
       Column : constant Field.Valid_Column := Mouse_Event.X / Button_Size + 1;
    begin -- Button_Press
-      Sequentializer.Respond (Action => Button_Press, Cell => (Row => Row, Column => Column) );
+      if Field.Operations.Game_State /= Field.Operations.In_Progress then
+         Show_Game_Over;
+      elsif Mode_Check.Active then
+         Field.Operations.Mark (Cell => (Row => Row, Column => Column) );
+      else
+         Field.Operations.Step (Cell => (Row => Row, Column => Column) );
+      end if;
    exception -- Button_Press
    when E : others =>
       Text_IO.Put_Line (Item => "Button_Press: " & Ada.Exceptions.Exception_Information (E) );
@@ -268,20 +229,15 @@ package body User_IF is
       Row    : constant Field.Valid_Row    := Mouse_Event.Y / Button_Size + 1;
       Column : constant Field.Valid_Column := Mouse_Event.X / Button_Size + 1;
    begin -- Right_Click
-      Sequentializer.Respond (Action => Right_Click, Cell => (Row => Row, Column => Column) );
+      if Field.Operations.Game_State /= Field.Operations.In_Progress then
+         Show_Game_Over;
+      else
+         Field.Operations.Mark (Cell => (Row => Row, Column => Column) );
+      end if;
    exception -- Right_Click
    when E : others =>
       Text_IO.Put_Line (Item => "Right_Click: " & Ada.Exceptions.Exception_Information (E) );
    end Right_Click;
-
-   procedure When_Restart_Button is
-      -- null;
-   begin -- When_Restart_Button
-      Sequentializer.Respond (Action => Restart);
-   exception -- When_Restart_Button
-   when E : others =>
-      Text_IO.Put_Line (Item => "When_Restart_Button: " & Ada.Exceptions.Exception_Information (E) );
-   end When_Restart_Button;
 
    procedure Rules_Pressed is
       Rules : constant String :=
@@ -382,34 +338,6 @@ package body User_IF is
       end loop Add_Options;
    end Create_Level_Option_Menu;
 
-   protected body Sequentializer is
-      entry Respond (Action : in Action_ID; Cell : in Field.Cell_Location := (Row => 1, Column => 1) ) when True is
-         -- null;
-      begin -- Respond
-         case Action is
-         when Button_Press =>
-            if Field.Operations.Game_State /= Field.Operations.In_Progress then
-               Show_Game_Over;
-            elsif Mode_Check.Active then
-               Field.Operations.Mark (Cell => Cell);
-            else
-               Field.Operations.Step (Cell => Cell);
-            end if;
-         when Right_Click =>
-            if Field.Operations.Game_State /= Field.Operations.In_Progress then
-               Show_Game_Over;
-            else
-               Field.Operations.Mark (Cell => Cell);
-            end if;
-         when Restart =>
-            Field.Operations.Set_Mine_Count (Levels (Level.Selected).Mines);
-            Field.Operations.Reset;
-         when Quiting =>
-            Ada_GUI.End_GUI;
-         end case;
-      end Respond;
-   end Sequentializer;
-
    procedure Play_Game is
       Event : Ada_GUI.Next_Result_Info;
 
@@ -432,17 +360,18 @@ package body User_IF is
                      null;
                   end if;
                elsif Event.Event.ID = Restart_Button then
-                  When_Restart_Button;
+                  Field.Operations.Set_Mine_Count (Levels (Level.Selected).Mines);
+                  Field.Operations.Reset;
                elsif Event.Event.ID = Mark_Check then
-                  Mark_Toggle;
+                  Auto_Marking_Desired := Mark_Check.Active;
                elsif Event.Event.ID = Step_Check then
-                  Step_Toggle;
+                  Extended_Stepping_Desired := Step_Check.Active;
                elsif Event.Event.ID = Rules then
                   Rules_Pressed;
                elsif Event.Event.ID = About then
                   About_Pressed;
                elsif Event.Event.ID = Quit then
-                  When_Close;
+                  Ada_GUI.End_GUI;
 
                   exit All_Events;
                else
@@ -455,6 +384,8 @@ package body User_IF is
          end Handle_Error;
       end loop All_Events;
    end Play_Game;
+
+   Zero_Pos : constant := Character'Pos ('0');
 begin -- User_IF
    Field.Operations.Set_Mine_Count (Levels (Default_Level).Mines);
    Ada_GUI.Set_Up (Grid => (1 => (1 => (Kind => Ada_GUI.Area, Alignment => Ada_GUI.Right),
@@ -466,6 +397,32 @@ begin -- User_IF
       (Width => Field.Valid_Column'Last * Button_Size, Height => Field.Valid_Row'Last * Button_Size);
    Drawing := Ada_GUI.New_Graphic_Area (Width => Button_Size, Height => Button_Size, Break_Before => True);
    Drawing.Set_Visibility (Visible => False);
+
+   Create_Flags : for I in Flag'Range loop
+      Flag (I) := Ada_GUI.New_Graphic_Area (Width => Button_Size, Height => Button_Size);
+      Flag (I).Set_Visibility (Visible => False);
+   end loop Create_Flags;
+
+   Flag (Flag'First).Draw_Rectangle (From_X     => 0,
+                                     From_Y     => 0,
+                                     To_X       => Button_Size - 1,
+                                     To_Y       => Button_Size - 1,
+                                     Fill_Color => (None => False, Color => Light_Green) );
+   Flag (Flag'First).Draw_Rectangle (From_X     =>  7,
+                                     From_Y     =>  5,
+                                     To_X       => 21,
+                                     To_Y       => 14,
+                                     Line_Color => (None => True),
+                                     Fill_Color => (None => False, Color => Red) );
+   Flag (Flag'First).Draw_Line (From_X => 7, From_Y => 5, To_X => 7, To_Y => 25);
+
+   Copy_Flag : for I in Flag'First + 1 .. Flag'Last loop
+      Flag (I).Replace_Pixels (Image => Flag (Flag'First), X => 0, Y => 0);
+   end loop Copy_Flag;
+
+   Add_Digit : for I in Flag'Range loop
+      Flag (I).Draw_Text (X => Button_Size / 2, Y => 26, Text => Character'Val (Zero_Pos + I) & "", Height => 13);
+   end loop Add_Digit;
 
    Mines_Left := Ada_GUI.New_Background_Text (Column => 3, Text => "0");
    Mines_Left.Set_Text_Aligbnment (Alignment => Ada_GUI.Center);
