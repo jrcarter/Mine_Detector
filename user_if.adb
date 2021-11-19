@@ -347,10 +347,14 @@ package body User_IF is
       Field.Operations.Reset;
 
       All_Events : loop
+         exit All_Events when Ada_GUI.Window_Closed;
+
          Handle_Error : begin
-            Event := Ada_GUI.Next_Event;
+            Event := Ada_GUI.Next_Event (Timeout => 1.0);
 
             if not Event.Timed_Out and then Event.Event.Kind in Ada_GUI.Left_Click | Ada_GUI.Right_Click then
+               exit All_Events when Event.Event.ID = Quit;
+
                if Event.Event.ID = Button then
                   if Event.Event.Kind = Ada_GUI.Left_Click then
                      Button_Press (Mouse_Event => Event.Event.Mouse);
@@ -370,10 +374,6 @@ package body User_IF is
                   Rules_Pressed;
                elsif Event.Event.ID = About then
                   About_Pressed;
-               elsif Event.Event.ID = Quit then
-                  Ada_GUI.End_GUI;
-
-                  exit All_Events;
                else
                   null;
                end if;
@@ -383,6 +383,8 @@ package body User_IF is
             Text_IO.Put_Line (Item => "Event loop: " & Ada.Exceptions.Exception_Information (E) );
          end Handle_Error;
       end loop All_Events;
+
+      Ada_GUI.End_GUI;
    end Play_Game;
 
    Zero_Pos : constant := Character'Pos ('0');
