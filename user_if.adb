@@ -347,35 +347,37 @@ package body User_IF is
       Field.Operations.Reset;
 
       All_Events : loop
-         exit All_Events when Ada_GUI.Window_Closed;
-
          Handle_Error : begin
             Event := Ada_GUI.Next_Event (Timeout => 1.0);
 
-            if not Event.Timed_Out and then Event.Event.Kind in Ada_GUI.Left_Click | Ada_GUI.Right_Click then
-               exit All_Events when Event.Event.ID = Quit;
+            if not Event.Timed_Out then
+               exit All_Events when Event.Event.Kind = Ada_GUI.Window_Closed;
 
-               if Event.Event.ID = Button then
-                  if Event.Event.Kind = Ada_GUI.Left_Click then
-                     Button_Press (Mouse_Event => Event.Event.Mouse);
-                  elsif Event.Event.Kind = Ada_GUI.Right_Click then
-                     Right_Click (Mouse_Event => Event.Event.Mouse);
+               if Event.Event.Kind in Ada_GUI.Left_Click | Ada_GUI.Right_Click then
+                  exit All_Events when Event.Event.ID = Quit;
+
+                  if Event.Event.ID = Button then
+                     if Event.Event.Kind = Ada_GUI.Left_Click then
+                        Button_Press (Mouse_Event => Event.Event.Mouse);
+                     elsif Event.Event.Kind = Ada_GUI.Right_Click then
+                        Right_Click (Mouse_Event => Event.Event.Mouse);
+                     else
+                        null;
+                     end if;
+                  elsif Event.Event.ID = Restart_Button then
+                     Field.Operations.Set_Mine_Count (Levels (Level.Selected).Mines);
+                     Field.Operations.Reset;
+                  elsif Event.Event.ID = Mark_Check then
+                     Auto_Marking_Desired := Mark_Check.Active;
+                  elsif Event.Event.ID = Step_Check then
+                     Extended_Stepping_Desired := Step_Check.Active;
+                  elsif Event.Event.ID = Rules then
+                     Rules_Pressed;
+                  elsif Event.Event.ID = About then
+                     About_Pressed;
                   else
                      null;
                   end if;
-               elsif Event.Event.ID = Restart_Button then
-                  Field.Operations.Set_Mine_Count (Levels (Level.Selected).Mines);
-                  Field.Operations.Reset;
-               elsif Event.Event.ID = Mark_Check then
-                  Auto_Marking_Desired := Mark_Check.Active;
-               elsif Event.Event.ID = Step_Check then
-                  Extended_Stepping_Desired := Step_Check.Active;
-               elsif Event.Event.ID = Rules then
-                  Rules_Pressed;
-               elsif Event.Event.ID = About then
-                  About_Pressed;
-               else
-                  null;
                end if;
             end if;
          exception -- Handle_Error
