@@ -15,7 +15,6 @@
 with Ada.Characters.Latin_1;
 with Ada.Exceptions;
 with Ada.Numerics;
-with Ada.Text_IO;
 
 with Field.Operations;
 pragma Elaborate (Field.Operations);
@@ -222,7 +221,7 @@ package body User_IF is
       end if;
    exception -- Button_Press
    when E : others =>
-      Text_IO.Put_Line (Item => "Button_Press: " & Ada.Exceptions.Exception_Information (E) );
+      Ada_GUI.Log (Message => "Button_Press: " & Ada.Exceptions.Exception_Information (E) );
    end Button_Press;
 
    procedure Right_Click (Mouse_Event : in Ada_GUI.Mouse_Event_Info) is
@@ -236,7 +235,7 @@ package body User_IF is
       end if;
    exception -- Right_Click
    when E : others =>
-      Text_IO.Put_Line (Item => "Right_Click: " & Ada.Exceptions.Exception_Information (E) );
+      Ada_GUI.Log (Message => "Right_Click: " & Ada.Exceptions.Exception_Information (E) );
    end Right_Click;
 
    procedure Rules_Pressed is
@@ -315,7 +314,7 @@ package body User_IF is
       Ada_GUI.Show_Message_Box (Text => Rules);
    exception -- Rules_Pressed
    when E : others =>
-      Text_IO.Put_Line (Item => "Rules_Pressed: " & Ada.Exceptions.Exception_Information (E) );
+      Ada_GUI.Log (Message => "Rules_Pressed: " & Ada.Exceptions.Exception_Information (E) );
    end Rules_Pressed;
 
    procedure About_Pressed is
@@ -327,7 +326,7 @@ package body User_IF is
                                         "of the GNU Public License" & Latin_1.LF & '"' & "Ada Inside" & '"');
    exception -- About_Pressed
    when E : others =>
-      Text_IO.Put_Line (Item => "About_Pressed: " & Ada.Exceptions.Exception_Information (E) );
+      Ada_GUI.Log (Message => "About_Pressed: " & Ada.Exceptions.Exception_Information (E) );
    end About_Pressed;
 
    procedure Create_Level_Option_Menu is
@@ -382,7 +381,7 @@ package body User_IF is
             end if;
          exception -- Handle_Error
          when E : others =>
-            Text_IO.Put_Line (Item => "Event loop: " & Ada.Exceptions.Exception_Information (E) );
+            Ada_GUI.Log (Message => "Event loop: " & Ada.Exceptions.Exception_Information (E) );
          end Handle_Error;
       end loop All_Events;
 
@@ -429,7 +428,7 @@ begin -- User_IF
    end loop Add_Digit;
 
    Mines_Left := Ada_GUI.New_Background_Text (Column => 3, Text => "0");
-   Mines_Left.Set_Text_Aligbnment (Alignment => Ada_GUI.Center);
+   Mines_Left.Set_Text_Alignment (Alignment => Ada_GUI.Center);
    Restart_Button := Ada_GUI.New_Button (Column => 3, Text => "New Game", Break_Before => True);
    Level := Ada_GUI.New_Selection_List (Column => 3, Break_Before => True);
    Create_Level_Option_Menu;
@@ -440,12 +439,12 @@ begin -- User_IF
    About := Ada_GUI.New_Button (Column => 3, Text => "About", Break_Before => True);
    Quit := Ada_GUI.New_Button (Column => 3, Text => "Quit", Break_Before => True);
    Game_Over := Ada_GUI.New_Background_Text (Column => 3, Text => You_Won_Message, Break_Before => True);
-   Game_Over.Set_Text_Aligbnment (Alignment => Ada_GUI.Center);
+   Game_Over.Set_Text_Alignment (Alignment => Ada_GUI.Center);
    Game_Over.Set_Visibility (Visible => False);
    Mode_Check := Ada_GUI.New_Check_Box (Column => 3, Label => "Mark", Break_Before => True);
 exception -- User_IF
 when E : others =>
-   Text_IO.Put_Line (Item => "User_IF: " & Ada.Exceptions.Exception_Information (E) );
+   Ada_GUI.Log (Message => "User_IF: " & Ada.Exceptions.Exception_Information (E) );
 end User_IF;
 --
 -- This is free software; you can redistribute it and/or modify it under
