@@ -1,7 +1,8 @@
 -- Mine Detector Game
--- Copyright (C) 2021 by PragmAda Software Engineering.  All rights reserved.
+-- Copyright (C) 2022 by PragmAda Software Engineering.  All rights reserved.
 -- **************************************************************************
 --
+-- V8.2 2022 Jun 01          HIdden pre-drawn flags
 -- V8.1 2021 Aug 01          Pre-drawn flags
 -- V8.0 2021 Jul 15          First Ada_GUI version
 -- V7.5 2021 Jun 15          Fix GNAT 11 circular-elaboration error
@@ -399,11 +400,11 @@ begin -- User_IF
    Button := Ada_GUI.New_Graphic_Area
       (Width => Field.Valid_Column'Last * Button_Size, Height => Field.Valid_Row'Last * Button_Size);
    Drawing := Ada_GUI.New_Graphic_Area (Width => Button_Size, Height => Button_Size, Break_Before => True);
-   Drawing.Set_Visibility (Visible => False);
+   Drawing.Set_Hidden;
 
    Create_Flags : for I in Flag'Range loop
       Flag (I) := Ada_GUI.New_Graphic_Area (Width => Button_Size, Height => Button_Size);
-      Flag (I).Set_Visibility (Visible => False);
+      Flag (I).Set_Hidden;
    end loop Create_Flags;
 
    Flag (Flag'First).Draw_Rectangle (From_X     => 0,
