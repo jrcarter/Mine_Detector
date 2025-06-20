@@ -18,11 +18,7 @@ package Field is
    subtype Valid_Count is Natural range 0 .. 9; -- Count of # of mines in a cell & its neighbors
 end Field;
 --
--- This is free software; you can redistribute it and/or modify it under
--- terms of the GNU General Public License as published by the Free Software
--- Foundation; version 2.
--- This software is distributed in the hope that it will be useful, but WITH
--- OUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
--- or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
--- for more details. Free Software Foundation, 59 Temple Place - Suite
--- 330, Boston, MA 02111-1307, USA.
+-- SPDX-License-Identifier: GPL-2.0-only
+-- See https://spdx.org/licenses/
+-- If you find this software useful, please let me know, either through
+-- github.com/jrcarter or directly to pragmada@pragmada.x10hosting.com
